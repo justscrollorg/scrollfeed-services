@@ -18,7 +18,7 @@ spec:
           image: anurag2911/articles-service:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 5000
+            - containerPort: 8080
           env:
             - name: MONGO_URI
               valueFrom:
@@ -52,13 +52,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /articles-api/stats
-              port: 5000
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /articles-api/stats
-              port: 5000
+              port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
 ---
@@ -73,5 +73,5 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 5000
+      targetPort: 8080
   type: ClusterIP
