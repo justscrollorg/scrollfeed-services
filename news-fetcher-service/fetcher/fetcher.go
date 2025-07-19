@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"news-fetcher-service/config"
 	"news-fetcher-service/model"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -78,8 +79,19 @@ func (f *Fetcher) FetchRegionNews(ctx context.Context, req model.FetchRequest) (
 	}
 
 	var allArticles []model.Article
-	baseURL := fmt.Sprintf("https://gnews.io/api/v4/top-headlines?lang=en&country=%s&max=10&token=%s",
-		req.Region, f.config.GNewsAPIKey)
+
+	// Support both NewsAPI.org and GNews formats
+	var baseURL string
+	if f.config.NewsAPIBaseURL == "https://newsapi.org/v2/top-headlines" ||
+		strings.Contains(f.config.NewsAPIBaseURL, "newsapi.org") {
+		// NewsAPI.org format
+		baseURL = fmt.Sprintf("%s?country=%s&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, req.Region, f.config.NewsAPIKey)
+	} else {
+		// GNews format (fallback)
+		baseURL = fmt.Sprintf("%s?lang=en&country=%s&max=10&token=%s",
+			f.config.NewsAPIBaseURL, req.Region, f.config.NewsAPIKey)
+	}
 
 	for page := 1; page <= req.MaxPages; page++ {
 		select {
