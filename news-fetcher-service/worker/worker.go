@@ -78,8 +78,8 @@ func (w *Worker) Start(ctx context.Context) error {
 	var sub *nats.Subscription
 	
 	for attempts := 0; attempts < 3; attempts++ {
-		// Try to add or update the consumer - use workqueue stream name to match logs
-		consumer, err := w.js.AddConsumer("workqueue", consumerConfig)
+		// Try to add or update the consumer - use NEWS_FETCH stream name to match setupStreams
+		consumer, err := w.js.AddConsumer("NEWS_FETCH", consumerConfig)
 		if err != nil && !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "not unique") {
 			log.Printf("Attempt %d: Failed to create consumer: %v", attempts+1, err)
 			if attempts < 2 {
