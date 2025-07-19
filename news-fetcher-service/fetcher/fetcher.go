@@ -173,16 +173,19 @@ func (f *Fetcher) fetchPage(ctx context.Context, url, region string) ([]model.Ar
 		return nil, err
 	}
 
-	// Convert to our model format with proper image mapping
+	// Convert to our model format with proper image mapping and validation
 	var articles []model.Article
 	now := time.Now()
 
 	for _, apiArticle := range apiResponse.Articles {
+		// Validate and clean up image URL
+		imageURL := f.validateImageURL(apiArticle.URLToImage)
+
 		article := model.Article{
 			Title:       apiArticle.Title,
 			Description: apiArticle.Description,
 			URL:         apiArticle.URL,
-			Image:       apiArticle.URLToImage, // Map urlToImage to image
+			Image:       imageURL, // Use validated image URL
 			Source: struct {
 				Name string `json:"name" bson:"name"`
 			}{
@@ -275,4 +278,31 @@ func (f *Fetcher) buildNewsAPIURL(region string) string {
 		return fmt.Sprintf("%s?country=%s&pageSize=20&apiKey=%s",
 			f.config.NewsAPIBaseURL, region, f.config.NewsAPIKey)
 	}
+}
+
+// validateImageURL checks if an image URL is valid and returns a fallback if not
+func (f *Fetcher) validateImageURL(imageURL string) string {
+	// If URL is empty or just whitespace, return fallback
+	if strings.TrimSpace(imageURL) == "" {
+		return f.getFallbackImageURL()
+	}
+
+	// Check if URL starts with http or https
+	if !strings.HasPrefix(imageURL, "http://") && !strings.HasPrefix(imageURL, "https://") {
+		return f.getFallbackImageURL()
+	}
+
+	// Check for common invalid patterns
+	if strings.Contains(imageURL, "null") || strings.Contains(imageURL, "undefined") {
+		return f.getFallbackImageURL()
+	}
+
+	// URL seems valid, return as-is
+	return imageURL
+}
+
+// getFallbackImageURL returns a default placeholder image
+func (f *Fetcher) getFallbackImageURL() string {
+	// Use a reliable placeholder service that works well with news articles
+	return "https://via.placeholder.com/400x300/E5E7EB/6B7280?text=News+Article"
 }
