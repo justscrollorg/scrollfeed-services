@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"video-service/config"
 	"video-service/model"
 )
@@ -101,5 +102,36 @@ func FetchVideoStatistics(videoID string) (interface{}, error) {
 	}
 
 	log.Printf("[INFO] Successfully fetched statistics for video: %s", videoID)
+	return result, nil
+}
+
+// SearchYouTubeVideos searches YouTube directly using the API
+func SearchYouTubeVideos(query, region string, maxResults int) (interface{}, error) {
+	apiURL := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?part=snippet&q=%s&type=video&regionCode=%s&maxResults=%d&key=%s",
+		url.QueryEscape(query), region, maxResults, cfg.YouTubeAPIKey)
+
+	log.Printf("[INFO] Searching YouTube for query: %s, region: %s", query, region)
+	log.Printf("[DEBUG] Request URL: %s", apiURL)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("[ERROR] Failed to search YouTube: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("[ERROR] YouTube API returned status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("YouTube API error: %d", resp.StatusCode)
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Printf("[ERROR] Failed to decode search response: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[INFO] Successfully searched YouTube for query: %s", query)
 	return result, nil
 }

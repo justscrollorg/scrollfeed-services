@@ -233,7 +233,10 @@ func SearchVideos(c *gin.Context) {
 	region := c.DefaultQuery("region", "US")
 	maxResultsStr := c.DefaultQuery("maxResults", "10")
 
+	log.Printf("[INFO] SearchVideos called with query: %s, region: %s, maxResults: %s", query, region, maxResultsStr)
+
 	if query == "" {
+		log.Printf("[WARN] Missing query parameter")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'query' is required"})
 		return
 	}
@@ -243,71 +246,16 @@ func SearchVideos(c *gin.Context) {
 		maxResults = 10
 	}
 
-	// Search in title and description
-	filter := bson.M{
-		"region": region,
-		"$or": []bson.M{
-			{"title": bson.M{"$regex": query, "$options": "i"}},
-			{"description": bson.M{"$regex": query, "$options": "i"}},
-		},
-	}
-
-	opts := options.Find().
-		SetSort(bson.D{{Key: "publishedAt", Value: -1}}).
-		SetLimit(int64(maxResults))
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	collection := db.Collection("videos")
-	cursor, err := collection.Find(ctx, filter, opts)
+	// Use YouTube API directly for search
+	data, err := service.SearchYouTubeVideos(query, region, maxResults)
 	if err != nil {
-		log.Printf("[ERROR] Search query failed: %v", err)
+		log.Printf("[ERROR] YouTube search failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
 		return
 	}
-	defer cursor.Close(ctx)
 
-	var videos []model.Video
-	if err := cursor.All(ctx, &videos); err != nil {
-		log.Printf("[ERROR] Failed to decode search results: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode search results"})
-		return
-	}
-
-	// Transform videos to YouTube API format for frontend compatibility
-	transformedVideos := make([]map[string]interface{}, len(videos))
-	for i, video := range videos {
-		transformedVideos[i] = map[string]interface{}{
-			"id": map[string]interface{}{
-				"videoId": video.VideoID,
-			},
-			"snippet": map[string]interface{}{
-				"title":        video.Title,
-				"description":  video.Description,
-				"channelTitle": video.ChannelTitle,
-				"publishedAt":  video.PublishedAt.Format(time.RFC3339),
-				"thumbnails": map[string]interface{}{
-					"medium": map[string]interface{}{
-						"url": video.Thumbnail,
-					},
-					"default": map[string]interface{}{
-						"url": video.Thumbnail,
-					},
-				},
-				"categoryId": video.CategoryID,
-			},
-			"videoURL":     video.VideoURL,
-			"viewCount":    video.ViewCount,
-			"likeCount":    video.LikeCount,
-			"duration":     video.Duration,
-			"region":       video.Region,
-			"categoryName": video.CategoryName,
-		}
-	}
-
-	log.Printf("[INFO] Search returned %d videos for query='%s', region=%s", len(videos), query, region)
-	c.JSON(http.StatusOK, transformedVideos)
+	log.Printf("[INFO] YouTube search completed for query='%s', region=%s", query, region)
+	c.JSON(http.StatusOK, data)
 }
 
 // Legacy handlers that still use YouTube API directly for compatibility
