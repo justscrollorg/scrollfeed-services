@@ -58,26 +58,13 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 func (w *Worker) Start(ctx context.Context) error {
 	log.Printf("Starting %d worker instances with consumer: news-fetcher-workers", w.config.WorkerCount)
 
-	// Use a simple pull subscription without conflicting with existing consumer
-	var sub *nats.Subscription
-	var err error
-
-	for attempts := 0; attempts < 3; attempts++ {
-		// Use simple pull subscription without specifying consumer name to avoid conflicts
-		sub, err = w.js.PullSubscribe("news.fetch.request", "", nats.ManualAck())
-		if err != nil {
-			log.Printf("Attempt %d: Failed to subscribe: %v", attempts+1, err)
-			if attempts < 2 {
-				time.Sleep(time.Duration(attempts+1) * time.Second)
-				continue
-			}
-			return fmt.Errorf("failed to subscribe after 3 attempts: %v", err)
-		}
-		break
-	}
-
-	if sub == nil {
-		return fmt.Errorf("failed to create subscription after 3 attempts")
+	// Use completely ephemeral subscription to avoid any consumer conflicts
+	log.Println("Creating ephemeral subscription for news.fetch.request")
+	
+	// Create a completely ephemeral consumer that doesn't conflict with anything
+	sub, err := w.js.PullSubscribe("news.fetch.request", "", nats.PullMaxWaiting(1))
+	if err != nil {
+		return fmt.Errorf("failed to create ephemeral subscription: %v", err)
 	}
 
 	log.Printf("Successfully subscribed to NEWS_FETCH stream")
