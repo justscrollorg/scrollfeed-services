@@ -1,20 +1,30 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
 	"video-service/handler"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func Setup() *gin.Engine {
+func Setup(db *mongo.Database) *gin.Engine {
 	r := gin.Default()
+
+	// Initialize handlers with database
+	handler.InitDB(db)
 
 	r.GET("/api/regions", handler.GetRegions)
 	r.GET("/api/categories", handler.GetCategories)
-	r.GET("/api/videos", handler.GetTopVideos)
-	r.GET("/api/trending", handler.GetAllTrending)
+	r.GET("/api/videos", handler.GetVideos)
+	r.GET("/api/trending", handler.GetTrending)
 	r.GET("/api/search", handler.SearchVideos)
 	r.GET("/api/comments", handler.GetComments)
 	r.GET("/api/videostats", handler.GetVideoStats)
+
+	// Health check endpoint
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "service": "video-service"})
+	})
 
 	return r
 }
