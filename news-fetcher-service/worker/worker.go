@@ -3,10 +3,13 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"news-fetcher-service/config"
 	"news-fetcher-service/fetcher"
 	"news-fetcher-service/model"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -14,10 +17,12 @@ import (
 )
 
 type Worker struct {
-	config  *config.Config
-	nc      *nats.Conn
-	fetcher *fetcher.Fetcher
-	js      nats.JetStreamContext
+	config       *config.Config
+	nc           *nats.Conn
+	fetcher      *fetcher.Fetcher
+	js           nats.JetStreamContext
+	consumerName string
+	instanceID   string
 }
 
 func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, error) {
@@ -26,31 +31,82 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 		return nil, err
 	}
 
-	// Create streams and consumers
+	// Create unique instance ID for this worker
+	instanceID := generateInstanceID()
+	consumerName := fmt.Sprintf("news-fetcher-%s", instanceID)
+
+	log.Printf("Creating worker with instanceID: %s, consumerName: %s", instanceID, consumerName)
+
+	// Create streams and clean up any existing consumer with same name
 	if err := setupStreams(js); err != nil {
 		return nil, err
 	}
 
+	// Clean up any existing consumer with same name (from previous crashed instances)
+	if err := cleanupConsumer(js, consumerName); err != nil {
+		log.Printf("Warning: Failed to cleanup existing consumer %s: %v", consumerName, err)
+	}
+
 	return &Worker{
-		config:  cfg,
-		nc:      nc,
-		fetcher: fetcher.NewFetcher(cfg, db),
-		js:      js,
+		config:       cfg,
+		nc:           nc,
+		fetcher:      fetcher.NewFetcher(cfg, db),
+		js:           js,
+		consumerName: consumerName,
+		instanceID:   instanceID,
 	}, nil
 }
 
 func (w *Worker) Start(ctx context.Context) error {
-	log.Printf("Starting %d worker instances", w.config.WorkerCount)
+	log.Printf("Starting %d worker instances with consumer: %s", w.config.WorkerCount, w.consumerName)
 
-	// Subscribe to fetch requests
-	_, err := w.js.Subscribe("news.fetch.request", w.handleFetchRequest,
-		nats.Durable("news-fetcher-workers"),
-		nats.ManualAck(),
-		nats.MaxAckPending(w.config.WorkerCount),
-	)
-	if err != nil {
-		return err
+	// Create consumer configuration with proper error handling
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:        w.consumerName,
+		AckPolicy:      nats.AckExplicitPolicy,
+		MaxAckPending:  w.config.WorkerCount,
+		AckWait:        30 * time.Second,
+		MaxDeliver:     3,
+		ReplayPolicy:   nats.ReplayInstantPolicy,
+		FilterSubject:  "news.fetch.request",
 	}
+
+	// Create consumer with retry logic
+	var sub *nats.Subscription
+	var err error
+	
+	for attempts := 0; attempts < 3; attempts++ {
+		// Try to create/update consumer
+		_, err = w.js.AddConsumer("NEWS_FETCH", consumerConfig)
+		if err != nil && !strings.Contains(err.Error(), "already exists") {
+			log.Printf("Attempt %d: Failed to create consumer: %v", attempts+1, err)
+			if attempts < 2 {
+				time.Sleep(time.Duration(attempts+1) * time.Second)
+				continue
+			}
+			return fmt.Errorf("failed to create consumer after 3 attempts: %v", err)
+		}
+
+		// Subscribe with ephemeral subscription for better cleanup
+		sub, err = w.js.PullSubscribe("news.fetch.request", w.consumerName, nats.ManualAck())
+		if err != nil {
+			if strings.Contains(err.Error(), "already bound") {
+				log.Printf("Attempt %d: Consumer already bound, cleaning up and retrying...", attempts+1)
+				cleanupConsumer(w.js, w.consumerName)
+				time.Sleep(time.Duration(attempts+1) * time.Second)
+				continue
+			}
+			return fmt.Errorf("failed to subscribe: %v", err)
+		}
+		break
+	}
+
+	if sub == nil {
+		return fmt.Errorf("failed to create subscription after 3 attempts")
+	}
+
+	// Start message processing in goroutine
+	go w.processMessages(ctx, sub)
 
 	// Start scheduler for periodic fetches
 	go w.startScheduler(ctx)
@@ -59,7 +115,38 @@ func (w *Worker) Start(ctx context.Context) error {
 
 	// Wait for context cancellation
 	<-ctx.Done()
+	
+	// Cleanup on shutdown
+	log.Printf("Shutting down worker %s, cleaning up consumer...", w.instanceID)
+	if err := cleanupConsumer(w.js, w.consumerName); err != nil {
+		log.Printf("Failed to cleanup consumer on shutdown: %v", err)
+	}
+	
 	return ctx.Err()
+}
+
+func (w *Worker) processMessages(ctx context.Context, sub *nats.Subscription) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// Fetch messages in batches
+			msgs, err := sub.Fetch(1, nats.MaxWait(5*time.Second))
+			if err != nil {
+				if err == nats.ErrTimeout {
+					continue // No messages available, continue polling
+				}
+				log.Printf("Error fetching messages: %v", err)
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			for _, msg := range msgs {
+				w.handleFetchRequest(msg)
+			}
+		}
+	}
 }
 
 func (w *Worker) handleFetchRequest(msg *nats.Msg) {
@@ -148,6 +235,33 @@ func (w *Worker) scheduleRegionFetches(regions []string) {
 
 func generateRequestID(region string) string {
 	return region + "-" + time.Now().Format("20060102-150405")
+}
+
+func generateInstanceID() string {
+	// Try to get hostname first
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+	
+	// Add timestamp for uniqueness
+	timestamp := time.Now().Format("150405")
+	
+	// Clean hostname to make it NATS-compatible
+	hostname = strings.ReplaceAll(hostname, "-", "")
+	hostname = strings.ReplaceAll(hostname, ".", "")
+	
+	return fmt.Sprintf("%s-%s", hostname, timestamp)
+}
+
+func cleanupConsumer(js nats.JetStreamContext, consumerName string) error {
+	// Try to delete the consumer, ignore errors if it doesn't exist
+	err := js.DeleteConsumer("NEWS_FETCH", consumerName)
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return err
+	}
+	log.Printf("Cleaned up consumer: %s", consumerName)
+	return nil
 }
 
 func setupStreams(js nats.JetStreamContext) error {
