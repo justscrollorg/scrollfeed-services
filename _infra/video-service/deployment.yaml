@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: video-service
@@ -26,9 +26,15 @@ spec:
                   name: youtube-api-secret
                   key: YOUTUBE_API_KEY
             - name: MONGO_URI
-              value: "mongodb://mongodb.mongo:27017"
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_URI
             - name: NATS_URL
-              value: "nats://nats.nats-system:4222"
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: NATS_URL
             - name: FETCH_INTERVAL_HOURS
               value: "6"
             - name: RATE_LIMIT_SECONDS
