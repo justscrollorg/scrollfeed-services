@@ -58,16 +58,13 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 func (w *Worker) Start(ctx context.Context) error {
 	log.Printf("Starting %d worker instances with consumer: news-fetcher-workers", w.config.WorkerCount)
 
-	// Use a shared consumer name for all instances but with better error handling
-	sharedConsumerName := "news-fetcher-workers" // Use existing consumer
-
-	// First, try to subscribe to the existing consumer
+	// Use a simple pull subscription without conflicting with existing consumer
 	var sub *nats.Subscription
 	var err error
 
 	for attempts := 0; attempts < 3; attempts++ {
-		// Subscribe with pull-based subscription using existing consumer
-		sub, err = w.js.PullSubscribe("news.fetch.request", sharedConsumerName, nats.ManualAck())
+		// Use simple pull subscription without specifying consumer name to avoid conflicts
+		sub, err = w.js.PullSubscribe("news.fetch.request", "", nats.ManualAck())
 		if err != nil {
 			log.Printf("Attempt %d: Failed to subscribe: %v", attempts+1, err)
 			if attempts < 2 {
@@ -83,7 +80,7 @@ func (w *Worker) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create subscription after 3 attempts")
 	}
 
-	log.Printf("Successfully subscribed to consumer: %s", sharedConsumerName)
+	log.Printf("Successfully subscribed to NEWS_FETCH stream")
 
 	// Start message processing in goroutine
 	go w.processMessages(ctx, sub)
