@@ -1,0 +1,27 @@
+{
+    "folders": [
+        {
+            "name": "news-fetcher-service",
+            "path": "./news-fetcher-service"
+        },
+        {
+            "name": "news-service", 
+            "path": "./news-service"
+        },
+        {
+            "name": "video-service",
+            "path": "./video-service"
+        }
+    ],
+    "settings": {
+        "go.useLanguageServer": true,
+        "go.toolsManagement.autoUpdate": true,
+        "gopls": {
+            "build.directoryFilters": [
+                "-node_modules",
+                "-_infra"
+            ],
+            "experimentalWorkspaceModule": true
+        }
+    }
+}

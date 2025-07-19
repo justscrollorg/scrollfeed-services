@@ -1,0 +1,37 @@
+.vscode/
+
+# Executable files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+/news-fetcher-service/news-fetcher.exe
+/news-service/news-service.exe
+/video-service/video-service.exe
+/news-service/cmd.exe
+
+# Build directories
+build/
+dist/
+bin/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Configuration files with credentials
+values.yaml
+**/values.yaml
+config.yaml
+**/config.yaml
+.env
+.env.local
+.env.*.local
+
+# Keep template files
+!*.template
+!**/*.template

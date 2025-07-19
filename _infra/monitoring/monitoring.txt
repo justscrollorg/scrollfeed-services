@@ -1,0 +1,102 @@
+=> kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+=> kubectl get deployment metrics-server -n kube-system
+=> kubectl top nodes
+=> kubectl top pods -A
+
+
+=>
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install prometheus prometheus-community/prometheus \
+  --namespace monitoring --create-namespace
+
+For Grafana: 
+=> kubectl port-forward svc/kube-prometheus-grafana -n monitoring 3000:80
+
+admin | admin
+
+For prometheus:
+=> kubectl port-forward -n monitoring $(kubectl get pod -n monitoring -l app.kubernetes.io/name=prometheus -o jsonpath="{.items[0].metadata.name}") 9090:9090
+
+
+To check the current health of your Kubernetes cluster, including number of pods, memory, and CPU consumption, you can use the following tools and commands:
+
+Cluster health=>
+
+1. Check Node-level Metrics
+
+
+kubectl top nodes
+
+
+Output includes:
+
+* CPU usage (`CPU(cores)`, `CPU%`)
+* Memory usage (`MEMORY(bytes)`, `MEMORY%`)
+
+
+
+2. Check Pod-level Metrics (All Namespaces)
+
+
+kubectl top pods --all-namespaces
+
+
+Output includes:
+
+* Per-pod CPU and memory usage
+
+
+
+3. Get Total Number of Pods in Cluster
+
+
+kubectl get pods --all-namespaces | wc -l
+
+
+Subtract 1 from the result to exclude the header row.
+
+Alternatively, get per namespace:
+
+
+kubectl get pods --all-namespaces
+
+
+
+
+4. Cluster Resource Summary
+
+
+kubectl describe nodes
+
+
+This shows:
+
+* Allocatable and capacity resources
+* What pods are running on each node
+* Resource requests/limits per pod
+
+
+
+5. Resource Quotas (if defined)
+
+
+kubectl get resourcequotas --all-namespaces
+
+
+
+
+6. Use Grafana + Prometheus for Visual Monitoring
+
+Now that you’ve set up Grafana:
+
+* Add Prometheus as the data source (`http://localhost:9090`)
+* Import a Kubernetes cluster dashboard from Grafana's [dashboard library](https://grafana.com/grafana/dashboards/)
+
+  * Example Dashboard ID: 6417 or 315 (Kubernetes cluster monitoring)
+
+
+
+
+

@@ -1,0 +1,16 @@
+# mongodb-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mongodb-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: mongodb-exporter
+  namespaceSelector:
+    matchNames:
+      - mongo
+  endpoints:
+    - port: http
+      interval: 15s

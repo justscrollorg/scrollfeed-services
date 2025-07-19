@@ -1,0 +1,17 @@
+auth:
+  enabled: true
+  rootUser: YOUR_ROOT_USER
+  rootPassword: YOUR_ROOT_PASSWORD
+  usernames: ["YOUR_USERNAME"]
+  passwords: ["YOUR_PASSWORD"]
+  databases: ["YOUR_DATABASE_NAME"]
+
+architecture: standalone
+
+primary:
+  persistence:
+    enabled: true
+    existingClaim: mongodb-pvc
+
+service:
+  type: ClusterIP

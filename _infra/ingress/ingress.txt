@@ -1,0 +1,26 @@
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress \
+  --create-namespace
+
+kubectl get svc -n ingress
+
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+
+order=>
+| Step | Description                         |
+| ---- | ----------------------------------- |
+| 1    | Install Ingress Controller          |
+| 2    | Install cert-manager                |
+| 3    | Apply ClusterIssuer                 |
+| 4    | Deploy services                     |
+| 5    | Apply Ingress                       |
+| 6    | Validate Certificate creation & DNS |
+
+kubectl create secret generic youtube-api-secret \
+  --from-literal=YOUTUBE_API_KEY=actualkey \
+  --namespace=default
+

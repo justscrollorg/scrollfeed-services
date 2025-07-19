@@ -1,0 +1,54 @@
+=> Keyfile
+    openssl rand -base64 756 > mongodb-keyfile
+    chmod 400 mongodb-keyfile
+=> create the secret
+    kubectl create secret generic mongodb-keyfile \
+  --from-file=mongodb-keyfile \
+  --namespace=mongo
+
+=>
+    kubectl apply -f mongo-statefulset.yaml
+    kubectl rollout restart statefulset mongo -n mongo
+
+
+
+=>
+    kubectl apply -f mongo-statefulset.yaml
+=> 
+    kubectl run mongo-client \
+    --rm -it \
+    --image=mongo:7.0.0 \
+    --namespace=mongo \
+    --command -- mongosh "mongodb://mongo-0.mongo.mongo.svc.cluster.local:27017"
+
+=> 
+    rs.initiate({
+    _id: "rs0",
+    members: [
+        { _id: 0, host: "mongo-0.mongo.mongo.svc.cluster.local:27017" },
+        { _id: 1, host: "mongo-1.mongo.mongo.svc.cluster.local:27017" },
+        { _id: 2, host: "mongo-2.mongo.mongo.svc.cluster.local:27017" }
+    ]
+    })
+
+=>
+    use admin
+    db.createUser({
+    user: "admin",
+    pwd: "strongpassword",
+    roles: [ { role: "root", db: "admin" } ]
+    })
+
+=>
+    kubectl port-forward svc/mongo 27017:27017 -n mongo
+=>
+compass
+    mongodb://admin:strongpassword@localhost:27017/?authSource=admin&directConnection=true
+
+=> Mongo exporter secret
+kubectl create secret generic mongodb-exporter-secret \
+  --from-literal=MONGODB_URI='mongodb://metrics:metrics123@mongo-0.mongo.mongo.svc.cluster.local:27017/admin?replicaSet=rs0' \
+  -n mongo
+
+=>
+

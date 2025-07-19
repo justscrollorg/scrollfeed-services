@@ -1,0 +1,44 @@
+# mongo-exporter-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter
+  namespace: mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: percona/mongodb_exporter:0.40.0
+          args:
+            - "--mongodb.uri=$(MONGODB_URI)"
+          ports:
+            - containerPort: 9216
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-exporter-secret
+                  key: MONGODB_URI
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter
+  namespace: mongo
+spec:
+  ports:
+    - name: http
+      port: 9216
+      targetPort: 9216
+  selector:
+    app: mongodb-exporter

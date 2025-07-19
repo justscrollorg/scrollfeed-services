@@ -1,0 +1,72 @@
+# mongo-headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: mongo
+spec:
+  ports:
+    - port: 27017
+  clusterIP: None
+  selector:
+    app: mongo
+
+---
+# mongo-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: mongo
+spec:
+  serviceName: "mongo"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7.0.0
+          command:
+            - mongod
+            - "--replSet"
+            - rs0
+            - "--bind_ip_all"
+            - "--auth"
+            - "--keyFile"
+            - "/etc/secrets-volume/mongodb-keyfile"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-persistent-storage
+              mountPath: /data/mongodb
+            - name: keyfile
+              mountPath: /etc/secrets-volume
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: keyfile
+          secret:
+            secretName: mongodb-keyfile
+            defaultMode: 0400
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-persistent-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: linode-block-storage
+        resources:
+          requests:
+            storage: 10Gi

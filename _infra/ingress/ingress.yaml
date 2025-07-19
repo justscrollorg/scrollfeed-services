@@ -1,0 +1,91 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubeplay-ingress
+  annotations:
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - justscrolls.com
+        - www.justscrolls.com
+      secretName: entwicklerkunst-tls
+  rules:
+    - host: justscrolls.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 80
+          - path: /news-api
+            pathType: Prefix
+            backend:
+              service:
+                name: news-service
+                port:
+                  number: 80
+          - path: /articles-api
+            pathType: Prefix
+            backend:
+              service:
+                name: articlessvc
+                port:
+                  number: 80
+          - path: /jokes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: jokessvc
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reactions-ui-service
+                port:
+                  number: 80
+    - host: www.justscrolls.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 80
+          - path: /news-api
+            pathType: Prefix
+            backend:
+              service:
+                name: news-service
+                port:
+                  number: 80
+          - path: /articles-api
+            pathType: Prefix
+            backend:
+              service:
+                name: articlessvc
+                port:
+                  number: 80
+          - path: /jokes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: jokessvc
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reactions-ui-service
+                port:
+                  number: 80
