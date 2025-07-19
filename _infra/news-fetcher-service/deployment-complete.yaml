@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
       - name: news-fetcher-service
-        image: news-fetcher-service:latest
-        imagePullPolicy: Never  # For local development
+        image: anurag2911/news-fetcher-service:latest
+        imagePullPolicy: Always
         env:
         - name: MONGO_URI
           valueFrom:
@@ -46,13 +46,13 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
