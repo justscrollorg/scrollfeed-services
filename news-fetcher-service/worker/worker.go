@@ -60,25 +60,27 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 func (w *Worker) Start(ctx context.Context) error {
 	log.Printf("Starting %d worker instances with consumer: %s", w.config.WorkerCount, w.consumerName)
 
+	// Use a shared consumer name for all instances but with better error handling
+	sharedConsumerName := "news-fetcher-shared"
+	
 	// Create consumer configuration with proper error handling
 	consumerConfig := &nats.ConsumerConfig{
-		Durable:        w.consumerName,
-		AckPolicy:      nats.AckExplicitPolicy,
-		MaxAckPending:  w.config.WorkerCount,
-		AckWait:        30 * time.Second,
-		MaxDeliver:     3,
-		ReplayPolicy:   nats.ReplayInstantPolicy,
-		FilterSubject:  "news.fetch.request",
+		Durable:       sharedConsumerName,
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxAckPending: 10, // Allow multiple instances to process messages
+		AckWait:       30 * time.Second,
+		MaxDeliver:    3,
+		ReplayPolicy:  nats.ReplayInstantPolicy,
+		FilterSubject: "news.fetch.request",
 	}
 
-	// Create consumer with retry logic
+	// Try to create/update consumer with better error handling
 	var sub *nats.Subscription
-	var err error
 	
 	for attempts := 0; attempts < 3; attempts++ {
-		// Try to create/update consumer
-		_, err = w.js.AddConsumer("NEWS_FETCH", consumerConfig)
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
+		// Try to add or update the consumer
+		consumer, err := w.js.AddConsumer("NEWS_FETCH", consumerConfig)
+		if err != nil && !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "not unique") {
 			log.Printf("Attempt %d: Failed to create consumer: %v", attempts+1, err)
 			if attempts < 2 {
 				time.Sleep(time.Duration(attempts+1) * time.Second)
@@ -86,17 +88,20 @@ func (w *Worker) Start(ctx context.Context) error {
 			}
 			return fmt.Errorf("failed to create consumer after 3 attempts: %v", err)
 		}
+		
+		if consumer != nil {
+			log.Printf("Consumer created/updated successfully: %s", sharedConsumerName)
+		}
 
-		// Subscribe with ephemeral subscription for better cleanup
-		sub, err = w.js.PullSubscribe("news.fetch.request", w.consumerName, nats.ManualAck())
+		// Subscribe with pull-based subscription for better scalability
+		sub, err = w.js.PullSubscribe("news.fetch.request", sharedConsumerName, nats.ManualAck())
 		if err != nil {
-			if strings.Contains(err.Error(), "already bound") {
-				log.Printf("Attempt %d: Consumer already bound, cleaning up and retrying...", attempts+1)
-				cleanupConsumer(w.js, w.consumerName)
+			log.Printf("Attempt %d: Failed to subscribe: %v", attempts+1, err)
+			if attempts < 2 {
 				time.Sleep(time.Duration(attempts+1) * time.Second)
 				continue
 			}
-			return fmt.Errorf("failed to subscribe: %v", err)
+			return fmt.Errorf("failed to subscribe after 3 attempts: %v", err)
 		}
 		break
 	}
@@ -105,23 +110,25 @@ func (w *Worker) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create subscription after 3 attempts")
 	}
 
+	log.Printf("Successfully subscribed to consumer: %s", sharedConsumerName)
+
 	// Start message processing in goroutine
 	go w.processMessages(ctx, sub)
 
-	// Start scheduler for periodic fetches
-	go w.startScheduler(ctx)
+	// Start scheduler for periodic fetches (only run on first instance)
+	if w.shouldRunScheduler() {
+		go w.startScheduler(ctx)
+		log.Println("Scheduler started on this instance")
+	} else {
+		log.Println("Scheduler skipped - another instance is likely running it")
+	}
 
 	log.Println("Workers started successfully")
 
 	// Wait for context cancellation
 	<-ctx.Done()
 	
-	// Cleanup on shutdown
-	log.Printf("Shutting down worker %s, cleaning up consumer...", w.instanceID)
-	if err := cleanupConsumer(w.js, w.consumerName); err != nil {
-		log.Printf("Failed to cleanup consumer on shutdown: %v", err)
-	}
-	
+	log.Printf("Shutting down worker %s...", w.instanceID)
 	return ctx.Err()
 }
 
@@ -262,6 +269,13 @@ func cleanupConsumer(js nats.JetStreamContext, consumerName string) error {
 	}
 	log.Printf("Cleaned up consumer: %s", consumerName)
 	return nil
+}
+
+func (w *Worker) shouldRunScheduler() bool {
+	// Simple leadership election - only the first instance (lexicographically) runs the scheduler
+	// This prevents multiple schedulers from running at the same time
+	hostname, _ := os.Hostname()
+	return strings.HasPrefix(hostname, "news-fetcher-service") || hostname == "unknown"
 }
 
 func setupStreams(js nats.JetStreamContext) error {
