@@ -129,8 +129,8 @@ type VideoListResponse struct {
 }
 
 type CategoryResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID    string `json:"id"`
+	Title string `json:"title"`
 }
 
 type RegionResponse struct {

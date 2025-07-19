@@ -27,15 +27,15 @@ func GetCategories(c *gin.Context) {
 
 	// For simplicity, return predefined categories
 	categories := []model.CategoryResponse{
-		{ID: "10", Name: "Music"},
-		{ID: "24", Name: "Entertainment"},
-		{ID: "25", Name: "News & Politics"},
-		{ID: "17", Name: "Sports"},
-		{ID: "20", Name: "Gaming"},
-		{ID: "23", Name: "Comedy"},
-		{ID: "26", Name: "Howto & Style"},
-		{ID: "27", Name: "Education"},
-		{ID: "28", Name: "Science & Technology"},
+		{ID: "10", Title: "Music"},
+		{ID: "24", Title: "Entertainment"},
+		{ID: "25", Title: "News & Politics"},
+		{ID: "17", Title: "Sports"},
+		{ID: "20", Title: "Gaming"},
+		{ID: "23", Title: "Comedy"},
+		{ID: "26", Title: "Howto & Style"},
+		{ID: "27", Title: "Education"},
+		{ID: "28", Title: "Science & Technology"},
 	}
 
 	log.Printf("[INFO] Retrieved %d categories for region %s", len(categories), region)
