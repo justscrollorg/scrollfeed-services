@@ -84,9 +84,8 @@ func (f *Fetcher) FetchRegionNews(ctx context.Context, req model.FetchRequest) (
 	var baseURL string
 	if f.config.NewsAPIBaseURL == "https://newsapi.org/v2/top-headlines" ||
 		strings.Contains(f.config.NewsAPIBaseURL, "newsapi.org") {
-		// NewsAPI.org format
-		baseURL = fmt.Sprintf("%s?country=%s&pageSize=20&apiKey=%s",
-			f.config.NewsAPIBaseURL, req.Region, f.config.NewsAPIKey)
+		// NewsAPI.org format with region-specific handling
+		baseURL = f.buildNewsAPIURL(req.Region)
 	} else {
 		// GNews format (fallback)
 		baseURL = fmt.Sprintf("%s?lang=en&country=%s&max=10&token=%s",
@@ -217,4 +216,38 @@ func (f *Fetcher) HealthCheck() error {
 	defer cancel()
 
 	return f.db.Client().Ping(ctx, nil)
+}
+
+// buildNewsAPIURL creates region-specific NewsAPI.org URLs
+func (f *Fetcher) buildNewsAPIURL(region string) string {
+	switch region {
+	case "us":
+		// US works well with country parameter
+		return fmt.Sprintf("%s?country=us&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	case "in":
+		// India: Use specific sources for better results
+		return fmt.Sprintf("%s?sources=the-times-of-india,the-hindu&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	case "de":
+		// Germany: Use specific sources for better results
+		return fmt.Sprintf("%s?sources=spiegel-online,der-tagesspiegel,focus&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	case "gb", "uk":
+		// UK: Use country parameter
+		return fmt.Sprintf("%s?country=gb&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	case "ca":
+		// Canada: Use country parameter
+		return fmt.Sprintf("%s?country=ca&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	case "au":
+		// Australia: Use country parameter
+		return fmt.Sprintf("%s?country=au&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
+	default:
+		// Fallback: try country parameter
+		return fmt.Sprintf("%s?country=%s&pageSize=20&apiKey=%s",
+			f.config.NewsAPIBaseURL, region, f.config.NewsAPIKey)
+	}
 }
