@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"news-fetcher-service/config"
 	"news-fetcher-service/worker"
 	"os"
@@ -56,6 +57,32 @@ func main() {
 		<-sigChan
 		log.Println("Received shutdown signal, stopping...")
 		cancel()
+	}()
+
+	// Start health check server
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy","service":"news-fetcher-service"}`))
+	})
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy","service":"news-fetcher-service"}`))
+	})
+
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ready","service":"news-fetcher-service"}`))
+	})
+
+	go func() {
+		log.Println("Health check server starting on :8080")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Printf("Health check server error: %v", err)
+		}
 	}()
 
 	// Start worker

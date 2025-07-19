@@ -23,6 +23,11 @@ func StartServer(db *mongo.Database, natsURL string) {
 		log.Fatal("Failed to initialize NATS handler:", err)
 	}
 
+	// Health check routes
+	router.GET("/", healthCheck)
+	router.GET("/health", healthCheck)
+	router.GET("/ready", healthCheck)
+
 	// API routes
 	router.GET("/news-api/news", callnewsHandler)
 	router.POST("/news-api/fetch/:region", triggerRegionFetch)
@@ -31,6 +36,10 @@ func StartServer(db *mongo.Database, natsURL string) {
 	log.Println("News API is running at :8080")
 
 	router.Run(":8080")
+}
+
+func healthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "healthy", "service": "news-service"})
 }
 
 func callnewsHandler(c *gin.Context) {
