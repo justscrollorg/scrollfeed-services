@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: reactions-ui
-          image: anurag2911/reactionsui:latest
+          image: anurag2911/reactions-ui:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
