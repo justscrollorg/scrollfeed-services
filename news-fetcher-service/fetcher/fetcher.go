@@ -176,7 +176,7 @@ func (f *Fetcher) fetchPage(ctx context.Context, url, region string) ([]model.Ar
 	// Convert to our model format with proper image mapping
 	var articles []model.Article
 	now := time.Now()
-	
+
 	for _, apiArticle := range apiResponse.Articles {
 		article := model.Article{
 			Title:       apiArticle.Title,

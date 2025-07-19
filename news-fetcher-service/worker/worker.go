@@ -42,10 +42,8 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 		return nil, err
 	}
 
-	// Clean up any existing consumer with same name (from previous crashed instances)
-	if err := cleanupConsumer(js, consumerName); err != nil {
-		log.Printf("Warning: Failed to cleanup existing consumer %s: %v", consumerName, err)
-	}
+	// Don't cleanup existing shared consumer since other instances may be using it
+	log.Printf("Using existing shared consumer: news-fetcher-workers")
 
 	return &Worker{
 		config:       cfg,
@@ -58,42 +56,17 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 }
 
 func (w *Worker) Start(ctx context.Context) error {
-	log.Printf("Starting %d worker instances with consumer: %s", w.config.WorkerCount, w.consumerName)
+	log.Printf("Starting %d worker instances with consumer: news-fetcher-workers", w.config.WorkerCount)
 
 	// Use a shared consumer name for all instances but with better error handling
-	sharedConsumerName := "news-fetcher-shared"
-	
-	// Create consumer configuration with proper error handling
-	consumerConfig := &nats.ConsumerConfig{
-		Durable:       sharedConsumerName,
-		AckPolicy:     nats.AckExplicitPolicy,
-		MaxAckPending: 10, // Allow multiple instances to process messages
-		AckWait:       30 * time.Second,
-		MaxDeliver:    3,
-		ReplayPolicy:  nats.ReplayInstantPolicy,
-		FilterSubject: "news.fetch.request",
-	}
+	sharedConsumerName := "news-fetcher-workers" // Use existing consumer
 
-	// Try to create/update consumer with better error handling
+	// First, try to subscribe to the existing consumer
 	var sub *nats.Subscription
-	
-	for attempts := 0; attempts < 3; attempts++ {
-		// Try to add or update the consumer - use NEWS_FETCH stream name to match setupStreams
-		consumer, err := w.js.AddConsumer("NEWS_FETCH", consumerConfig)
-		if err != nil && !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "not unique") {
-			log.Printf("Attempt %d: Failed to create consumer: %v", attempts+1, err)
-			if attempts < 2 {
-				time.Sleep(time.Duration(attempts+1) * time.Second)
-				continue
-			}
-			return fmt.Errorf("failed to create consumer after 3 attempts: %v", err)
-		}
-		
-		if consumer != nil {
-			log.Printf("Consumer created/updated successfully: %s", sharedConsumerName)
-		}
+	var err error
 
-		// Subscribe with pull-based subscription for better scalability
+	for attempts := 0; attempts < 3; attempts++ {
+		// Subscribe with pull-based subscription using existing consumer
 		sub, err = w.js.PullSubscribe("news.fetch.request", sharedConsumerName, nats.ManualAck())
 		if err != nil {
 			log.Printf("Attempt %d: Failed to subscribe: %v", attempts+1, err)
@@ -127,7 +100,7 @@ func (w *Worker) Start(ctx context.Context) error {
 
 	// Wait for context cancellation
 	<-ctx.Done()
-	
+
 	log.Printf("Shutting down worker %s...", w.instanceID)
 	return ctx.Err()
 }
@@ -250,14 +223,14 @@ func generateInstanceID() string {
 	if err != nil {
 		hostname = "unknown"
 	}
-	
+
 	// Add timestamp for uniqueness
 	timestamp := time.Now().Format("150405")
-	
+
 	// Clean hostname to make it NATS-compatible
 	hostname = strings.ReplaceAll(hostname, "-", "")
 	hostname = strings.ReplaceAll(hostname, ".", "")
-	
+
 	return fmt.Sprintf("%s-%s", hostname, timestamp)
 }
 
