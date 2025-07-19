@@ -58,19 +58,18 @@ func NewWorker(cfg *config.Config, nc *nats.Conn, db *mongo.Database) (*Worker, 
 func (w *Worker) Start(ctx context.Context) error {
 	log.Printf("Starting %d worker instances with consumer: news-fetcher-workers", w.config.WorkerCount)
 
-	// Use completely ephemeral subscription to avoid any consumer conflicts
-	log.Println("Creating ephemeral subscription for news.fetch.request")
+	// Use simple async subscription without any JetStream complexity
+	log.Println("Creating simple async subscription for news.fetch.request")
 
-	// Create a completely ephemeral consumer that doesn't conflict with anything
-	sub, err := w.js.PullSubscribe("news.fetch.request", "", nats.PullMaxWaiting(1))
+	// Use regular NATS subscription instead of JetStream pull subscription
+	_, err := w.nc.Subscribe("news.fetch.request", func(msg *nats.Msg) {
+		w.handleFetchRequest(msg)
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create ephemeral subscription: %v", err)
+		return fmt.Errorf("failed to create async subscription: %v", err)
 	}
 
-	log.Printf("Successfully subscribed to NEWS_FETCH stream")
-
-	// Start message processing in goroutine
-	go w.processMessages(ctx, sub)
+	log.Printf("Successfully subscribed to news.fetch.request")
 
 	// Start scheduler for periodic fetches (only run on first instance)
 	if w.shouldRunScheduler() {
@@ -89,35 +88,10 @@ func (w *Worker) Start(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func (w *Worker) processMessages(ctx context.Context, sub *nats.Subscription) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			// Fetch messages in batches
-			msgs, err := sub.Fetch(1, nats.MaxWait(5*time.Second))
-			if err != nil {
-				if err == nats.ErrTimeout {
-					continue // No messages available, continue polling
-				}
-				log.Printf("Error fetching messages: %v", err)
-				time.Sleep(1 * time.Second)
-				continue
-			}
-
-			for _, msg := range msgs {
-				w.handleFetchRequest(msg)
-			}
-		}
-	}
-}
-
 func (w *Worker) handleFetchRequest(msg *nats.Msg) {
 	var req model.FetchRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		log.Printf("Failed to unmarshal fetch request: %v", err)
-		msg.Nak()
 		return
 	}
 
@@ -131,13 +105,11 @@ func (w *Worker) handleFetchRequest(msg *nats.Msg) {
 		log.Printf("Fetch failed for region %s: %v", req.Region, err)
 		// Publish failure result
 		w.publishResult(result)
-		msg.Nak()
 		return
 	}
 
 	// Publish success result
 	w.publishResult(result)
-	msg.Ack()
 }
 
 func (w *Worker) publishResult(result *model.FetchResult) {
@@ -216,16 +188,6 @@ func generateInstanceID() string {
 	hostname = strings.ReplaceAll(hostname, ".", "")
 
 	return fmt.Sprintf("%s-%s", hostname, timestamp)
-}
-
-func cleanupConsumer(js nats.JetStreamContext, consumerName string) error {
-	// Try to delete the consumer, ignore errors if it doesn't exist
-	err := js.DeleteConsumer("NEWS_FETCH", consumerName)
-	if err != nil && !strings.Contains(err.Error(), "not found") {
-		return err
-	}
-	log.Printf("Cleaned up consumer: %s", consumerName)
-	return nil
 }
 
 func (w *Worker) shouldRunScheduler() bool {
