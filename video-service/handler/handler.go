@@ -64,7 +64,7 @@ func GetVideos(c *gin.Context) {
 	maxResultsStr := c.DefaultQuery("maxResults", "20")
 	pageStr := c.DefaultQuery("page", "1")
 
-	log.Printf("[INFO] GetVideos called with region: %s, category: %s, maxResults: %s, page: %s", 
+	log.Printf("[INFO] GetVideos called with region: %s, category: %s, maxResults: %s, page: %s",
 		region, category, maxResultsStr, pageStr)
 
 	if region == "" {
@@ -120,20 +120,45 @@ func GetVideos(c *gin.Context) {
 		return
 	}
 
-	response := model.VideoListResponse{
-		Videos: videos,
-		Count:  len(videos),
-		Region: region,
+	// Transform videos to YouTube API format for frontend compatibility
+	transformedVideos := make([]map[string]interface{}, len(videos))
+	for i, video := range videos {
+		transformedVideos[i] = map[string]interface{}{
+			"id": map[string]interface{}{
+				"videoId": video.VideoID,
+			},
+			"snippet": map[string]interface{}{
+				"title":        video.Title,
+				"description":  video.Description,
+				"channelTitle": video.ChannelTitle,
+				"publishedAt":  video.PublishedAt.Format(time.RFC3339),
+				"thumbnails": map[string]interface{}{
+					"medium": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+					"default": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+				},
+				"categoryId": video.CategoryID,
+			},
+			"videoURL":     video.VideoURL,
+			"viewCount":    video.ViewCount,
+			"likeCount":    video.LikeCount,
+			"duration":     video.Duration,
+			"region":       video.Region,
+			"categoryName": video.CategoryName,
+		}
 	}
 
 	log.Printf("[INFO] Retrieved %d videos for region=%s, category=%s", len(videos), region, category)
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, transformedVideos)
 }
 
 func GetTrending(c *gin.Context) {
 	maxResultsStr := c.DefaultQuery("maxResults", "20")
 	region := c.DefaultQuery("region", "US")
-	
+
 	log.Printf("[INFO] GetTrending called with maxResults=%s, region=%s", maxResultsStr, region)
 
 	maxResults, err := strconv.Atoi(maxResultsStr)
@@ -168,13 +193,44 @@ func GetTrending(c *gin.Context) {
 		return
 	}
 
+	// Transform videos to YouTube API format for frontend compatibility
+	transformedVideos := make([]map[string]interface{}, len(videos))
+	for i, video := range videos {
+		transformedVideos[i] = map[string]interface{}{
+			"id": map[string]interface{}{
+				"videoId": video.VideoID,
+			},
+			"snippet": map[string]interface{}{
+				"title":        video.Title,
+				"description":  video.Description,
+				"channelTitle": video.ChannelTitle,
+				"publishedAt":  video.PublishedAt.Format(time.RFC3339),
+				"thumbnails": map[string]interface{}{
+					"medium": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+					"default": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+				},
+				"categoryId": video.CategoryID,
+			},
+			"videoURL":     video.VideoURL,
+			"viewCount":    video.ViewCount,
+			"likeCount":    video.LikeCount,
+			"duration":     video.Duration,
+			"region":       video.Region,
+			"categoryName": video.CategoryName,
+		}
+	}
+
 	log.Printf("[INFO] Retrieved %d trending videos for region=%s", len(videos), region)
-	c.JSON(http.StatusOK, videos)
+	c.JSON(http.StatusOK, transformedVideos)
 }
 
 func SearchVideos(c *gin.Context) {
 	query := c.Query("q")
-	region := c.DefaultQuery("region", "US") 
+	region := c.DefaultQuery("region", "US")
 	maxResultsStr := c.DefaultQuery("maxResults", "10")
 
 	if query == "" {
@@ -219,8 +275,39 @@ func SearchVideos(c *gin.Context) {
 		return
 	}
 
+	// Transform videos to YouTube API format for frontend compatibility
+	transformedVideos := make([]map[string]interface{}, len(videos))
+	for i, video := range videos {
+		transformedVideos[i] = map[string]interface{}{
+			"id": map[string]interface{}{
+				"videoId": video.VideoID,
+			},
+			"snippet": map[string]interface{}{
+				"title":        video.Title,
+				"description":  video.Description,
+				"channelTitle": video.ChannelTitle,
+				"publishedAt":  video.PublishedAt.Format(time.RFC3339),
+				"thumbnails": map[string]interface{}{
+					"medium": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+					"default": map[string]interface{}{
+						"url": video.Thumbnail,
+					},
+				},
+				"categoryId": video.CategoryID,
+			},
+			"videoURL":     video.VideoURL,
+			"viewCount":    video.ViewCount,
+			"likeCount":    video.LikeCount,
+			"duration":     video.Duration,
+			"region":       video.Region,
+			"categoryName": video.CategoryName,
+		}
+	}
+
 	log.Printf("[INFO] Search returned %d videos for query='%s', region=%s", len(videos), query, region)
-	c.JSON(http.StatusOK, videos)
+	c.JSON(http.StatusOK, transformedVideos)
 }
 
 // Legacy handlers that still use YouTube API directly for compatibility
