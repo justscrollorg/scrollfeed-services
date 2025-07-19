@@ -33,9 +33,9 @@ func StartServer(db *mongo.Database, natsURL string) {
 	router.POST("/news-api/fetch/:region", triggerRegionFetch)
 	router.POST("/news-api/fetch-all", triggerAllFetch)
 
-	log.Println("News API is running at :8080")
+	log.Println("News API is running at :80")
 
-	router.Run(":8080")
+	router.Run(":80")
 }
 
 func healthCheck(c *gin.Context) {
