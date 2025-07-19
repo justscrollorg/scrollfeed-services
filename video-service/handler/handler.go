@@ -229,12 +229,12 @@ func GetTrending(c *gin.Context) {
 }
 
 func SearchVideos(c *gin.Context) {
-	query := c.Query("q")
+	query := c.Query("query")
 	region := c.DefaultQuery("region", "US")
 	maxResultsStr := c.DefaultQuery("maxResults", "10")
 
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'query' is required"})
 		return
 	}
 
