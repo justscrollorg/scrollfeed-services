@@ -60,7 +60,7 @@ func (w *Worker) Start(ctx context.Context) error {
 
 	// Use completely ephemeral subscription to avoid any consumer conflicts
 	log.Println("Creating ephemeral subscription for news.fetch.request")
-	
+
 	// Create a completely ephemeral consumer that doesn't conflict with anything
 	sub, err := w.js.PullSubscribe("news.fetch.request", "", nats.PullMaxWaiting(1))
 	if err != nil {
