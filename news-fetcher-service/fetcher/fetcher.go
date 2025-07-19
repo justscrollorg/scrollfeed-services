@@ -155,22 +155,47 @@ func (f *Fetcher) fetchPage(ctx context.Context, url, region string) ([]model.Ar
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	var result struct {
-		Articles []model.Article `json:"articles"`
+	// Temporary structure to handle NewsAPI.org response format
+	var apiResponse struct {
+		Articles []struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+			URL         string `json:"url"`
+			URLToImage  string `json:"urlToImage"` // NewsAPI.org uses this field
+			Source      struct {
+				Name string `json:"name"`
+			} `json:"source"`
+			PublishedAt time.Time `json:"publishedAt"`
+		} `json:"articles"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, err
 	}
 
-	// Set region and fetch time for all articles
+	// Convert to our model format with proper image mapping
+	var articles []model.Article
 	now := time.Now()
-	for i := range result.Articles {
-		result.Articles[i].Topic = region
-		result.Articles[i].FetchedAt = now
+	
+	for _, apiArticle := range apiResponse.Articles {
+		article := model.Article{
+			Title:       apiArticle.Title,
+			Description: apiArticle.Description,
+			URL:         apiArticle.URL,
+			Image:       apiArticle.URLToImage, // Map urlToImage to image
+			Source: struct {
+				Name string `json:"name" bson:"name"`
+			}{
+				Name: apiArticle.Source.Name,
+			},
+			PublishedAt: apiArticle.PublishedAt,
+			Topic:       region,
+			FetchedAt:   now,
+		}
+		articles = append(articles, article)
 	}
 
-	return result.Articles, nil
+	return articles, nil
 }
 
 func (f *Fetcher) storeArticles(ctx context.Context, articles []model.Article) (int, error) {

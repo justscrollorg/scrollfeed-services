@@ -30,6 +30,8 @@ func StartServer(db *mongo.Database, natsURL string) {
 
 	// API routes
 	router.GET("/news-api/news", callnewsHandler)
+	router.GET("/news-api/regions", getRegions)
+	router.GET("/news-api/stats", getStats)
 	router.POST("/news-api/fetch/:region", triggerRegionFetch)
 	router.POST("/news-api/fetch-all", triggerAllFetch)
 
@@ -44,7 +46,7 @@ func healthCheck(c *gin.Context) {
 
 func callnewsHandler(c *gin.Context) {
 	log.Printf("[INFO] callnewsHandler called")
-	natsNewsHandler.GetNews(c, dbmngo)
+	enhancedNewsHandler(c, dbmngo)
 }
 
 func triggerRegionFetch(c *gin.Context) {
@@ -74,4 +76,14 @@ func triggerAllFetch(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Fetch triggered for all regions", "priority": priority})
+}
+
+func getRegions(c *gin.Context) {
+	// Return available regions
+	regions := []string{"us", "in", "de"}
+	c.JSON(200, gin.H{"regions": regions})
+}
+
+func getStats(c *gin.Context) {
+	statsHandler(c, dbmngo)
 }
