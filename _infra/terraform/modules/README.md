@@ -11,10 +11,10 @@
    ```yaml
    auth:
      enabled: true
-     rootUser: novell
-     rootPassword: novell123
-     usernames: ["novell"]
-     passwords: ["novell123"]
+     rootUser: your_username
+     rootPassword: YOUR_SECURE_PASSWORD_HERE
+     usernames: ["your_username"]
+     passwords: ["YOUR_SECURE_PASSWORD_HERE"]
      databases: ["reactions"]
    ```
 
