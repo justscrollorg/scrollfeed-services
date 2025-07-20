@@ -20,8 +20,11 @@ bin/
 # Terraform
 .terraform/
 *.tfstate
+*.tfstate.*
 *.tfstate.backup
 .terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
 
 # Configuration files with credentials
 values.yaml
@@ -31,6 +34,12 @@ config.yaml
 .env
 .env.local
 .env.*.local
+
+# Kubernetes secrets and sensitive configs
+*secret*.yaml
+*secrets*.yaml
+**/secret*.yaml
+**/secrets*.yaml
 
 # Keep template files
 !*.template
