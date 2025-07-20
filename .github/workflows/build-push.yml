@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [video-service, news-service, news-fetcher-service]
+        service: [video-service, news-service, news-fetcher-service, analytics-service]
 
     steps:
       - name: Checkout code
