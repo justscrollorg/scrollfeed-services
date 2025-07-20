@@ -275,24 +275,24 @@ func (h *AnalyticsHandler) parseDevice(userAgent string) string {
 
 func (h *AnalyticsHandler) parseDeviceModel(userAgent string) string {
 	ua := userAgent
-	
+
 	// Common device patterns
 	patterns := map[string]*regexp.Regexp{
-		"iPhone":      regexp.MustCompile(`iPhone\s*(\d+[,\s]*\d*)`),
-		"iPad":        regexp.MustCompile(`iPad\d*[,\s]*\d*`),
-		"Samsung":     regexp.MustCompile(`SM-[A-Z0-9]+`),
+		"iPhone":       regexp.MustCompile(`iPhone\s*(\d+[,\s]*\d*)`),
+		"iPad":         regexp.MustCompile(`iPad\d*[,\s]*\d*`),
+		"Samsung":      regexp.MustCompile(`SM-[A-Z0-9]+`),
 		"Google Pixel": regexp.MustCompile(`Pixel\s*\d*`),
-		"Huawei":      regexp.MustCompile(`[A-Z]{3}-[A-Z0-9]+`),
-		"OnePlus":     regexp.MustCompile(`OnePlus\s*[A-Z0-9]+`),
-		"Xiaomi":      regexp.MustCompile(`Mi\s*[A-Z0-9\s]+`),
+		"Huawei":       regexp.MustCompile(`[A-Z]{3}-[A-Z0-9]+`),
+		"OnePlus":      regexp.MustCompile(`OnePlus\s*[A-Z0-9]+`),
+		"Xiaomi":       regexp.MustCompile(`Mi\s*[A-Z0-9\s]+`),
 	}
-	
+
 	for deviceType, pattern := range patterns {
 		if match := pattern.FindString(ua); match != "" {
 			return deviceType + " " + match
 		}
 	}
-	
+
 	// Check for Windows device hints
 	if strings.Contains(strings.ToLower(ua), "windows") {
 		// Extract potential device info from Windows UA
@@ -301,7 +301,7 @@ func (h *AnalyticsHandler) parseDeviceModel(userAgent string) string {
 		}
 		return "Windows Desktop"
 	}
-	
+
 	return "Unknown Device"
 }
 
@@ -324,19 +324,19 @@ func (h *AnalyticsHandler) parseBrowser(userAgent string) string {
 func (h *AnalyticsHandler) parseBrowserVersion(userAgent string) string {
 	// Extract browser versions using regex
 	patterns := map[string]*regexp.Regexp{
-		"Chrome": regexp.MustCompile(`Chrome/(\d+\.\d+\.\d+\.\d+)`),
+		"Chrome":  regexp.MustCompile(`Chrome/(\d+\.\d+\.\d+\.\d+)`),
 		"Firefox": regexp.MustCompile(`Firefox/(\d+\.\d+)`),
-		"Safari": regexp.MustCompile(`Version/(\d+\.\d+\.\d+)`),
-		"Edge": regexp.MustCompile(`Edg/(\d+\.\d+\.\d+\.\d+)`),
-		"Opera": regexp.MustCompile(`(Opera|OPR)/(\d+\.\d+\.\d+\.\d+)`),
+		"Safari":  regexp.MustCompile(`Version/(\d+\.\d+\.\d+)`),
+		"Edge":    regexp.MustCompile(`Edg/(\d+\.\d+\.\d+\.\d+)`),
+		"Opera":   regexp.MustCompile(`(Opera|OPR)/(\d+\.\d+\.\d+\.\d+)`),
 	}
-	
+
 	for _, pattern := range patterns {
 		if matches := pattern.FindStringSubmatch(userAgent); len(matches) > 1 {
 			return matches[1]
 		}
 	}
-	
+
 	return "Unknown Version"
 }
 
@@ -368,19 +368,17 @@ func (h *AnalyticsHandler) parseOSVersion(userAgent string) string {
 	// Extract OS versions using regex
 	patterns := map[string]*regexp.Regexp{
 		"Windows": regexp.MustCompile(`Windows NT (\d+\.\d+)`),
-		"macOS": regexp.MustCompile(`Mac OS X (\d+[_\d]*)`),
-		"iOS": regexp.MustCompile(`OS (\d+_\d+_?\d*)`),
+		"macOS":   regexp.MustCompile(`Mac OS X (\d+[_\d]*)`),
+		"iOS":     regexp.MustCompile(`OS (\d+_\d+_?\d*)`),
 		"Android": regexp.MustCompile(`Android (\d+\.\d+\.?\d*)`),
-		"Linux": regexp.MustCompile(`Linux (\w+)`),
+		"Linux":   regexp.MustCompile(`Linux (\w+)`),
 	}
-	
+
 	for _, pattern := range patterns {
 		if matches := pattern.FindStringSubmatch(userAgent); len(matches) > 1 {
 			return strings.ReplaceAll(matches[1], "_", ".")
 		}
 	}
-	
+
 	return "Unknown Version"
 }
-
-

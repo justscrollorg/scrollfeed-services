@@ -8,27 +8,27 @@ import (
 
 // VisitEvent represents a user visit event
 type VisitEvent struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	SessionID    string             `bson:"session_id" json:"session_id"`
-	UserAgent    string             `bson:"user_agent" json:"user_agent"`
-	IPAddress    string             `bson:"ip_address" json:"ip_address"`
-	Referrer     string             `bson:"referrer" json:"referrer"`
-	Page         string             `bson:"page" json:"page"`
-	Timestamp    time.Time          `bson:"timestamp" json:"timestamp"`
-	Country      string             `bson:"country,omitempty" json:"country,omitempty"`
-	City         string             `bson:"city,omitempty" json:"city,omitempty"`
-	Device       string             `bson:"device,omitempty" json:"device,omitempty"`
-	DeviceModel  string             `bson:"device_model,omitempty" json:"device_model,omitempty"`
-	Browser      string             `bson:"browser,omitempty" json:"browser,omitempty"`
-	BrowserVersion string           `bson:"browser_version,omitempty" json:"browser_version,omitempty"`
-	OS           string             `bson:"os,omitempty" json:"os,omitempty"`
-	OSVersion    string             `bson:"os_version,omitempty" json:"os_version,omitempty"`
-	ScreenWidth  int                `bson:"screen_width,omitempty" json:"screen_width,omitempty"`
-	ScreenHeight int                `bson:"screen_height,omitempty" json:"screen_height,omitempty"`
-	Language     string             `bson:"language,omitempty" json:"language,omitempty"`
-	TimeZone     string             `bson:"timezone,omitempty" json:"timezone,omitempty"`
+	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
+	SessionID      string             `bson:"session_id" json:"session_id"`
+	UserAgent      string             `bson:"user_agent" json:"user_agent"`
+	IPAddress      string             `bson:"ip_address" json:"ip_address"`
+	Referrer       string             `bson:"referrer" json:"referrer"`
+	Page           string             `bson:"page" json:"page"`
+	Timestamp      time.Time          `bson:"timestamp" json:"timestamp"`
+	Country        string             `bson:"country,omitempty" json:"country,omitempty"`
+	City           string             `bson:"city,omitempty" json:"city,omitempty"`
+	Device         string             `bson:"device,omitempty" json:"device,omitempty"`
+	DeviceModel    string             `bson:"device_model,omitempty" json:"device_model,omitempty"`
+	Browser        string             `bson:"browser,omitempty" json:"browser,omitempty"`
+	BrowserVersion string             `bson:"browser_version,omitempty" json:"browser_version,omitempty"`
+	OS             string             `bson:"os,omitempty" json:"os,omitempty"`
+	OSVersion      string             `bson:"os_version,omitempty" json:"os_version,omitempty"`
+	ScreenWidth    int                `bson:"screen_width,omitempty" json:"screen_width,omitempty"`
+	ScreenHeight   int                `bson:"screen_height,omitempty" json:"screen_height,omitempty"`
+	Language       string             `bson:"language,omitempty" json:"language,omitempty"`
+	TimeZone       string             `bson:"timezone,omitempty" json:"timezone,omitempty"`
 	// Additional device metadata
-	CPUCores               int     `bson:"cpu_cores,omitempty" json:"cpu_cores,omitempty"`
+	CPUCores              int     `bson:"cpu_cores,omitempty" json:"cpu_cores,omitempty"`
 	DeviceMemory          float64 `bson:"device_memory,omitempty" json:"device_memory,omitempty"`
 	ConnectionType        string  `bson:"connection_type,omitempty" json:"connection_type,omitempty"`
 	ConnectionDownlink    float64 `bson:"connection_downlink,omitempty" json:"connection_downlink,omitempty"`
@@ -70,7 +70,7 @@ type AnalyticsRequest struct {
 	ScrollDepth  float64 `json:"scroll_depth"`
 	EventType    string  `json:"event_type"` // "visit", "pageview", "exit"
 	// Additional device metadata
-	CPUCores               int     `json:"cpu_cores"`
+	CPUCores              int     `json:"cpu_cores"`
 	DeviceMemory          float64 `json:"device_memory"`
 	ConnectionType        string  `json:"connection_type"`
 	ConnectionDownlink    float64 `json:"connection_downlink"`
