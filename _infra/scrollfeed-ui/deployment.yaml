@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reactions-ui
+  name: scrollfeed-ui
   labels:
-    app: reactions-ui
+    app: scrollfeed-ui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reactions-ui
+      app: scrollfeed-ui
   template:
     metadata:
       labels:
-        app: reactions-ui
+        app: scrollfeed-ui
     spec:
       containers:
-        - name: reactions-ui
-          image: anurag2911/reactions-ui:latest
+        - name: scrollfeed-ui
+          image: anurag2911/scrollfeed-ui:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
@@ -25,10 +25,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: reactions-ui-service
+  name: scrollfeed-ui
 spec:
   selector:
-    app: reactions-ui
+    app: scrollfeed-ui
   ports:
     - port: 80
       targetPort: 80

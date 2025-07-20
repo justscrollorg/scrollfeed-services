@@ -48,7 +48,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: reactions-ui-service
+                name: scrollfeed-ui
                 port:
                   number: 80
     - host: www.justscrolls.com
@@ -86,6 +86,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: reactions-ui-service
+                name: scrollfeed-ui
                 port:
                   number: 80
