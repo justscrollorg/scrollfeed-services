@@ -258,7 +258,7 @@ func (f *Fetcher) buildNewsAPIURL(region string) string {
 		return fmt.Sprintf("%s?sources=the-times-of-india,the-hindu&pageSize=20&apiKey=%s",
 			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
 	case "de":
-		// Germany: Use specific sources for better results
+		// Germany: Use specific sources for better results 
 		return fmt.Sprintf("%s?sources=spiegel-online,der-tagesspiegel,focus&pageSize=20&apiKey=%s",
 			f.config.NewsAPIBaseURL, f.config.NewsAPIKey)
 	case "gb", "uk":
