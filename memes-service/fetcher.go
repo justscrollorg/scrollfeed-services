@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -18,14 +19,17 @@ type ImgflipResponse struct {
 }
 
 func FetchImgflipMemes() ([]Meme, error) {
+	log.Println("Fetching memes from Imgflip...")
 	resp, err := http.Get("https://api.imgflip.com/get_memes")
 	if err != nil {
+		log.Printf("Imgflip fetch error: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var result ImgflipResponse
 	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("Imgflip unmarshal error: %v", err)
 		return nil, err
 	}
 	memes := []Meme{}
@@ -37,6 +41,7 @@ func FetchImgflipMemes() ([]Meme, error) {
 			Permalink: m.URL,
 		})
 	}
+	log.Printf("Fetched %d memes from Imgflip", len(memes))
 	return memes, nil
 }
 
@@ -54,17 +59,20 @@ type RedditListing struct {
 }
 
 func FetchRedditMemes() ([]Meme, error) {
+	log.Println("Fetching memes from Reddit...")
 	url := "https://www.reddit.com/r/memes/top.json?limit=20&t=day"
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "scrollfeed-memes-bot/0.1")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("Reddit fetch error: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var listing RedditListing
 	if err := json.Unmarshal(body, &listing); err != nil {
+		log.Printf("Reddit unmarshal error: %v", err)
 		return nil, err
 	}
 	memes := []Meme{}
@@ -79,6 +87,7 @@ func FetchRedditMemes() ([]Meme, error) {
 			})
 		}
 	}
+	log.Printf("Fetched %d memes from Reddit", len(memes))
 	return memes, nil
 }
 
