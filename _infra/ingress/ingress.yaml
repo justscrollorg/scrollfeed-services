@@ -51,6 +51,13 @@ spec:
                 name: analytics-service
                 port:
                   number: 80
+            - path: /memes-api
+              pathType: Prefix
+              backend:
+                service:
+                  name: memes-service
+                  port:
+                    number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -96,6 +103,13 @@ spec:
                 name: analytics-service
                 port:
                   number: 80
+            - path: /memes-api
+              pathType: Prefix
+              backend:
+                service:
+                  name: memes-service
+                  port:
+                    number: 80
           - path: /
             pathType: Prefix
             backend:
