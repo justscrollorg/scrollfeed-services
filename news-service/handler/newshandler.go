@@ -154,7 +154,12 @@ func (nh *NewsHandler) FetchNews(c *gin.Context) {
 
 	strategy := nh.config.RegionStrategies[region]
 	if strategy == "" {
-		strategy = "api" // fallback
+		// Force RSS for India, API for others
+		if region == "in" {
+			strategy = "rss"
+		} else {
+			strategy = "api" // fallback
+		}
 	}
 
 	log.Printf("Manual fetch request for region: %s using strategy: %s", region, strategy)

@@ -39,11 +39,9 @@ func NewRSSStrategy() *RSSStrategy {
 	return &RSSStrategy{
 		Sources: map[string][]string{
 			"in": {
-				"https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+				"https://feeds.feedburner.com/ndtvnews-top-stories",
 				"https://www.hindustantimes.com/feeds/rss/india-news/index.xml",
 				"https://indianexpress.com/feed/",
-				"https://www.ndtv.com/india-news/rss",
-				"https://www.thehindu.com/news/national/?service=rss",
 			},
 		},
 	}
