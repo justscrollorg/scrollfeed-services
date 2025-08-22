@@ -48,6 +48,13 @@ spec:
           value: "2"
         - name: NEWS_FETCH_INTERVAL_HOURS
           value: "2"
+        # NATS Configuration
+        - name: ENABLE_NATS
+          value: "true"
+        - name: NATS_URL
+          value: "nats://nats.nats-system.svc.cluster.local:4222"
+        - name: NATS_SUBJECT
+          value: "news.articles"
         ports:
         - containerPort: 80
         resources:

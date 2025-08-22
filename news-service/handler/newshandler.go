@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,44 +11,322 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type NewsHandler struct {
+	collection    *mongo.Collection
+	config        *NewsConfig
+	strategies    map[string]NewsStrategy
+	natsPublisher *NATSPublisher
+}
+
 // Configuration struct for news fetching
 type NewsConfig struct {
-	APIKey        string
-	BaseURL       string
-	Regions       []string
-	MaxPages      int
-	MaxArticles   int
-	RateLimit     time.Duration
-	FetchInterval time.Duration
+	APIKey           string
+	BaseURL          string
+	Regions          []string
+	MaxPages         int
+	MaxArticles      int
+	RateLimit        time.Duration
+	FetchInterval    time.Duration
+	EnableNATS       bool
+	NATSConfig       *NATSConfig
+	RegionStrategies map[string]string
+}
+
+func NewNewsHandler(collection *mongo.Collection) *NewsHandler {
+	config := loadImprovedNewsConfig()
+
+	// Initialize NATS if enabled
+	var natsPublisher *NATSPublisher
+	if config.EnableNATS {
+		var err error
+		natsPublisher, err = NewNATSPublisher(config.NATSConfig)
+		if err != nil {
+			log.Printf("Failed to initialize NATS publisher: %v", err)
+		} else {
+			log.Println("NATS publisher initialized successfully")
+		}
+	}
+
+	// Initialize strategies
+	strategies := make(map[string]NewsStrategy)
+	strategies["api"] = &APIStrategy{}
+	strategies["rss"] = NewRSSStrategy()
+
+	return &NewsHandler{
+		collection:    collection,
+		config:        config,
+		strategies:    strategies,
+		natsPublisher: natsPublisher,
+	}
 }
 
 // Load configuration from environment variables
-func loadNewsConfig() *NewsConfig {
+func loadImprovedNewsConfig() *NewsConfig {
+	enableNATS, _ := strconv.ParseBool(getEnvOrDefault("ENABLE_NATS", "false"))
+
+	var natsConfig *NATSConfig
+	if enableNATS {
+		natsConfig = &NATSConfig{
+			URL:     getEnvOrDefault("NATS_URL", "nats://localhost:4222"),
+			Subject: getEnvOrDefault("NATS_SUBJECT", "news.articles"),
+		}
+	}
+
+	// Region-specific strategies: "in" uses RSS, others use API
+	regionStrategies := make(map[string]string)
+	regions := strings.Split(getEnvOrDefault("NEWS_REGIONS", "us,in,de"), ",")
+	for _, region := range regions {
+		if region == "in" {
+			regionStrategies[region] = "rss"
+		} else {
+			regionStrategies[region] = "api"
+		}
+	}
+
 	config := &NewsConfig{
-		APIKey:        os.Getenv("NEWS_API_KEY"), // Generic name instead of GNEWS_API_KEY
-		BaseURL:       getEnvOrDefault("NEWS_API_BASE_URL", "https://newsapi.org/v2/top-headlines"),
-		Regions:       strings.Split(getEnvOrDefault("NEWS_REGIONS", "us,in,de"), ","),
-		MaxPages:      getEnvIntOrDefault("NEWS_MAX_PAGES", 2),
-		MaxArticles:   getEnvIntOrDefault("NEWS_MAX_ARTICLES", 50),
-		RateLimit:     time.Duration(getEnvIntOrDefault("NEWS_RATE_LIMIT_SECONDS", 2)) * time.Second,
-		FetchInterval: time.Duration(getEnvIntOrDefault("NEWS_FETCH_INTERVAL_HOURS", 2)) * time.Hour,
+		APIKey:           os.Getenv("NEWS_API_KEY"),
+		BaseURL:          getEnvOrDefault("NEWS_API_BASE_URL", "https://newsapi.org/v2/top-headlines"),
+		Regions:          regions,
+		MaxPages:         getEnvIntOrDefault("NEWS_MAX_PAGES", 2),
+		MaxArticles:      getEnvIntOrDefault("NEWS_MAX_ARTICLES", 50),
+		RateLimit:        time.Duration(getEnvIntOrDefault("NEWS_RATE_LIMIT_SECONDS", 2)) * time.Second,
+		FetchInterval:    time.Duration(getEnvIntOrDefault("NEWS_FETCH_INTERVAL_HOURS", 2)) * time.Hour,
+		EnableNATS:       enableNATS,
+		NATSConfig:       natsConfig,
+		RegionStrategies: regionStrategies,
 	}
 
 	if config.APIKey == "" {
-		log.Fatal("Missing NEWS_API_KEY environment variable")
+		log.Println("Warning: Missing NEWS_API_KEY environment variable - API strategy will not work")
 	}
 
-	log.Printf("News Config: BaseURL=%s, Regions=%v, MaxPages=%d, MaxArticles=%d",
-		config.BaseURL, config.Regions, config.MaxPages, config.MaxArticles)
+	log.Printf("Hybrid News Config: BaseURL=%s, Regions=%v, MaxPages=%d, MaxArticles=%d, NATS=%t",
+		config.BaseURL, config.Regions, config.MaxPages, config.MaxArticles, config.EnableNATS)
 
 	return config
 }
 
+// GetNews handles GET /news endpoint with strategy selection
+func (nh *NewsHandler) GetNews(c *gin.Context) {
+	region := c.Query("region")
+	if region == "" {
+		region = "us" // default
+	}
+
+	log.Printf("GetNews request for region: %s", region)
+
+	// Get articles from database
+	filter := bson.M{"topic": region}
+
+	opts := options.Find().SetSort(bson.D{{Key: "fetchedat", Value: -1}}).SetLimit(50)
+	cursor, err := nh.collection.Find(context.TODO(), filter, opts)
+	if err != nil {
+		log.Printf("Database query error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	var articles []model.Article
+	if err = cursor.All(context.TODO(), &articles); err != nil {
+		log.Printf("Cursor decode error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Data parsing error"})
+		return
+	}
+
+	log.Printf("Retrieved %d articles for region: %s", len(articles), region)
+	c.JSON(http.StatusOK, articles)
+}
+
+// FetchNews manually triggers news fetching for a specific region
+func (nh *NewsHandler) FetchNews(c *gin.Context) {
+	region := c.Query("region")
+	if region == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "region parameter required"})
+		return
+	}
+
+	strategy := nh.config.RegionStrategies[region]
+	if strategy == "" {
+		// Force RSS for India, API for others
+		if region == "in" {
+			strategy = "rss"
+		} else {
+			strategy = "api" // fallback
+		}
+	}
+
+	log.Printf("Manual fetch request for region: %s using strategy: %s", region, strategy)
+
+	// Use the appropriate strategy
+	newsStrategy, exists := nh.strategies[strategy]
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Strategy not available"})
+		return
+	}
+
+	articles, err := newsStrategy.FetchNews(region, nh.config)
+	if err != nil {
+		log.Printf("Failed to fetch news for region %s: %v", region, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Fetch failed: %v", err)})
+		return
+	}
+
+	// Store articles
+	stored := nh.storeArticles(articles)
+
+	// Publish to NATS if enabled
+	if nh.natsPublisher != nil {
+		if err := nh.natsPublisher.PublishBatch(articles); err != nil {
+			log.Printf("Failed to publish to NATS: %v", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"region":         region,
+		"strategy":       strategy,
+		"fetched":        len(articles),
+		"stored":         stored,
+		"nats_published": nh.natsPublisher != nil,
+	})
+}
+
+func (nh *NewsHandler) storeArticles(articles []model.Article) int {
+	stored := 0
+	for _, article := range articles {
+		filter := bson.M{"url": article.URL}
+		update := bson.M{"$set": article}
+
+		result, err := nh.collection.UpdateOne(
+			context.TODO(),
+			filter,
+			update,
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			log.Printf("Insert failed for article: %s | error: %v", article.URL, err)
+		} else {
+			if result.UpsertedCount > 0 || result.ModifiedCount > 0 {
+				stored++
+			}
+		}
+	}
+	return stored
+}
+
+// TriggerNewsFetch manually triggers news fetching for a specific region
+func (nh *NewsHandler) TriggerNewsFetch(region, priority string) error {
+	strategy := nh.config.RegionStrategies[region]
+	if strategy == "" {
+		strategy = "api"
+	}
+
+	log.Printf("Triggering fetch for region=%s, strategy=%s, priority=%s", region, strategy, priority)
+
+	newsStrategy, exists := nh.strategies[strategy]
+	if !exists {
+		return fmt.Errorf("strategy %s not available", strategy)
+	}
+
+	articles, err := newsStrategy.FetchNews(region, nh.config)
+	if err != nil {
+		return fmt.Errorf("fetch failed: %v", err)
+	}
+
+	stored := nh.storeArticles(articles)
+	log.Printf("Manual fetch completed for region=%s: fetched=%d, stored=%d", region, len(articles), stored)
+
+	// Publish to NATS if enabled
+	if nh.natsPublisher != nil && len(articles) > 0 {
+		if err := nh.natsPublisher.PublishBatch(articles); err != nil {
+			log.Printf("Failed to publish to NATS: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// TriggerAllRegionsFetch triggers fetching for all configured regions
+func (nh *NewsHandler) TriggerAllRegionsFetch(priority string) error {
+	log.Printf("Triggering fetch for all regions with priority=%s", priority)
+
+	for _, region := range nh.config.Regions {
+		if err := nh.TriggerNewsFetch(region, priority); err != nil {
+			log.Printf("Failed to fetch region %s: %v", region, err)
+			continue
+		}
+		// Small delay between regions
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
+}
+
+// StartScheduledFetcher runs the hybrid news fetcher
+func StartScheduledFetcher(db *mongo.Database) {
+	handler := NewNewsHandler(db.Collection("articles"))
+	config := handler.config
+
+	log.Println("Starting hybrid scheduled news fetcher...")
+
+	// Run immediately
+	handler.fetchAndStoreAllRegions()
+
+	ticker := time.NewTicker(config.FetchInterval)
+	for {
+		<-ticker.C
+		handler.fetchAndStoreAllRegions()
+	}
+}
+
+func (nh *NewsHandler) fetchAndStoreAllRegions() {
+	log.Println("Starting hybrid fetch cycle for all regions...")
+
+	for _, region := range nh.config.Regions {
+		strategy := nh.config.RegionStrategies[region]
+		if strategy == "" {
+			strategy = "api"
+		}
+
+		log.Printf("Fetching region=%s using strategy=%s", region, strategy)
+
+		newsStrategy, exists := nh.strategies[strategy]
+		if !exists {
+			log.Printf("Strategy %s not available for region %s", strategy, region)
+			continue
+		}
+
+		articles, err := newsStrategy.FetchNews(region, nh.config)
+		if err != nil {
+			log.Printf("Failed to fetch news for region=%s: %v", region, err)
+			continue
+		}
+
+		stored := nh.storeArticles(articles)
+		log.Printf("Region=%s: fetched=%d, stored=%d", region, len(articles), stored)
+
+		// Publish to NATS if enabled
+		if nh.natsPublisher != nil && len(articles) > 0 {
+			if err := nh.natsPublisher.PublishBatch(articles); err != nil {
+				log.Printf("Failed to publish to NATS for region %s: %v", region, err)
+			}
+		}
+
+		// Rate limiting between regions
+		time.Sleep(nh.config.RateLimit)
+	}
+
+	log.Println("Finished hybrid fetch cycle")
+}
+
+// Utility functions
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -64,107 +341,4 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
-}
-
-func fetchRegionNews(region string, config *NewsConfig) ([]model.Article, error) {
-	// NewsAPI.org URL structure: https://newsapi.org/v2/top-headlines?country=us&apiKey=API_KEY&pageSize=20&page=1
-	// GNews URL structure: https://gnews.io/api/v4/top-headlines?lang=en&country=us&max=10&token=API_KEY&page=1
-
-	var baseURL string
-
-	if strings.Contains(config.BaseURL, "newsapi.org") {
-		// NewsAPI.org format
-		baseURL = fmt.Sprintf("%s?country=%s&pageSize=20&apiKey=%s",
-			config.BaseURL, region, config.APIKey)
-	} else {
-		// GNews format (fallback)
-		baseURL = fmt.Sprintf("%s?lang=en&country=%s&max=10&token=%s",
-			config.BaseURL, region, config.APIKey)
-	}
-
-	var allArticles []model.Article
-
-	for page := 1; page <= config.MaxPages; page++ {
-		url := fmt.Sprintf("%s&page=%d", baseURL, page)
-
-		log.Printf("Fetching region=%s page=%d URL=%s", region, page, url)
-
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Printf("HTTP error for region=%s page=%d: %v", region, page, err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			log.Printf("Non-200 response for region=%s page=%d: %s", region, page, resp.Status)
-			continue
-		}
-
-		var result struct {
-			Articles []model.Article `json:"articles"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			log.Printf("JSON decode error for region=%s page=%d: %v", region, page, err)
-			continue
-		}
-
-		for _, article := range result.Articles {
-			article.Topic = region
-			article.FetchedAt = time.Now()
-			allArticles = append(allArticles, article)
-		}
-
-		time.Sleep(config.RateLimit) // configurable rate limit
-	}
-
-	if len(allArticles) > config.MaxArticles {
-		allArticles = allArticles[:config.MaxArticles]
-	}
-	log.Printf("Fetched %d articles for region=%s", len(allArticles), region)
-	return allArticles, nil
-}
-
-func StartScheduledFetcher(db *mongo.Database) {
-	config := loadNewsConfig()
-
-	log.Println("Starting scheduled news fetcher...")
-
-	// run immediately
-	fetchAndStoreArticles(db, config)
-
-	ticker := time.NewTicker(config.FetchInterval)
-	for {
-		<-ticker.C
-		fetchAndStoreArticles(db, config)
-	}
-}
-
-func fetchAndStoreArticles(db *mongo.Database, config *NewsConfig) {
-	log.Println("Fetching news articles by region...")
-
-	for _, region := range config.Regions {
-		log.Printf("Region: %s", region)
-
-		articles, err := fetchRegionNews(region, config)
-		if err != nil {
-			log.Printf("Failed to fetch news for region=%s: %v", region, err)
-			continue
-		}
-
-		log.Printf("Inserting %d articles for region=%s", len(articles), region)
-
-		for i, article := range articles {
-			filter := bson.M{"url": article.URL}
-			update := bson.M{"$set": article}
-			_, err := db.Collection("articles").UpdateOne(context.TODO(), filter, update, options.Update().SetUpsert(true))
-			if err != nil {
-				log.Printf("[%d] Insert failed for article: %s | error: %v", i, article.URL, err)
-			} else {
-				log.Printf("[%d] Upserted article: %s", i, article.URL)
-			}
-		}
-	}
-
-	log.Println("Finished fetch and store cycle")
 }

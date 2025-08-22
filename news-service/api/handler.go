@@ -13,12 +13,32 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Region mapping for UI compatibility
+func mapRegionToCode(region string) string {
+	regionMap := map[string]string{
+		"india":   "in",
+		"in":      "in",
+		"usa":     "us", 
+		"us":      "us",
+		"america": "us",
+		"germany": "de",
+		"de":      "de",
+		"deutschland": "de",
+	}
+	
+	normalized := strings.ToLower(strings.TrimSpace(region))
+	if code, exists := regionMap[normalized]; exists {
+		return code
+	}
+	return normalized // fallback to original
+}
+
 // Enhanced news handler with better pagination and caching
 func enhancedNewsHandler(c *gin.Context, db *mongo.Database) {
 	start := time.Now()
 
 	// Parse query parameters
-	region := strings.ToLower(c.Query("region"))
+	region := mapRegionToCode(c.Query("region"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "33"))
 
