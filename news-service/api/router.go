@@ -16,12 +16,8 @@ func StartServer(db *mongo.Database, natsURL string) {
 
 	dbmngo = db
 
-	// Initialize NATS handler
-	var err error
-	natsNewsHandler, err = handler.NewNewsHandler(db, natsURL)
-	if err != nil {
-		log.Fatal("Failed to initialize NATS handler:", err)
-	}
+	// Initialize News Handler with the collection
+	natsNewsHandler = handler.NewNewsHandler(db.Collection("articles"))
 
 	// Health check routes
 	router.GET("/", healthCheck)
@@ -37,6 +33,9 @@ func StartServer(db *mongo.Database, natsURL string) {
 
 	log.Println("News API is running at :80")
 
+	// Start the background fetcher
+	go handler.StartScheduledFetcher(db)
+
 	router.Run(":80")
 }
 
@@ -45,7 +44,7 @@ func healthCheck(c *gin.Context) {
 }
 
 func callnewsHandler(c *gin.Context) {
-	log.Printf("[INFO] callnewsHandler called")
+	log.Printf("[INFO] callnewsHandler called - using enhanced handler")
 	enhancedNewsHandler(c, dbmngo)
 }
 
