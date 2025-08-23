@@ -10,6 +10,7 @@ import (
 
 var dbmngo *mongo.Database
 var natsNewsHandler *handler.NewsHandler
+var streamingAPI *StreamingAPI
 
 func StartServer(db *mongo.Database, natsURL string) {
 	router := gin.Default()
@@ -18,6 +19,9 @@ func StartServer(db *mongo.Database, natsURL string) {
 
 	// Initialize News Handler with the collection
 	natsNewsHandler = handler.NewNewsHandler(db.Collection("articles"))
+
+	// Initialize Streaming API
+	streamingAPI = NewStreamingAPI(natsNewsHandler)
 
 	// Health check routes
 	router.GET("/", healthCheck)
@@ -31,7 +35,19 @@ func StartServer(db *mongo.Database, natsURL string) {
 	router.POST("/news-api/fetch/:region", triggerRegionFetch)
 	router.POST("/news-api/fetch-all", triggerAllFetch)
 
+	// Streaming API routes
+	streamingRoutes := router.Group("/streaming-api")
+	{
+		streamingRoutes.GET("/status", streamingAPI.GetStreamStatus)
+		streamingRoutes.GET("/trending", streamingAPI.GetTrendingTopics)
+		streamingRoutes.GET("/metrics", streamingAPI.GetAnalyticsMetrics)
+		streamingRoutes.POST("/test-event", streamingAPI.PublishTestEvent)
+		streamingRoutes.GET("/stream/:stream/metrics", streamingAPI.GetStreamMetrics)
+		streamingRoutes.POST("/simulate-load", streamingAPI.SimulateLoad)
+	}
+
 	log.Println("News API is running at :80")
+	log.Println("Streaming API available at /streaming-api/*")
 
 	// Start the background fetcher
 	go handler.StartScheduledFetcher(db)

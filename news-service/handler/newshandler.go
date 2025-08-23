@@ -18,10 +18,12 @@ import (
 )
 
 type NewsHandler struct {
-	collection    *mongo.Collection
-	config        *NewsConfig
-	strategies    map[string]NewsStrategy
-	natsPublisher *NATSPublisher
+	collection         *mongo.Collection
+	config             *NewsConfig
+	strategies         map[string]NewsStrategy
+	natsPublisher      *NATSPublisher
+	streamingService   *NATSStreamingService
+	analyticsProcessor *AnalyticsProcessor
 }
 
 // Configuration struct for news fetching
@@ -36,6 +38,8 @@ type NewsConfig struct {
 	EnableNATS       bool
 	NATSConfig       *NATSConfig
 	RegionStrategies map[string]string
+	EnableJetStream  bool
+	StreamingConfig  *StreamingConfig
 }
 
 func NewNewsHandler(collection *mongo.Collection) *NewsHandler {
@@ -53,28 +57,59 @@ func NewNewsHandler(collection *mongo.Collection) *NewsHandler {
 		}
 	}
 
+	// Initialize JetStream if enabled
+	var streamingService *NATSStreamingService
+	var analyticsProcessor *AnalyticsProcessor
+	if config.EnableJetStream {
+		var err error
+		streamingService, err = NewNATSStreamingService(config.StreamingConfig)
+		if err != nil {
+			log.Printf("Failed to initialize NATS JetStream: %v", err)
+		} else {
+			log.Println("NATS JetStream initialized successfully")
+			// Initialize analytics processor
+			analyticsProcessor = NewAnalyticsProcessor(streamingService)
+		}
+	}
+
 	// Initialize strategies
 	strategies := make(map[string]NewsStrategy)
 	strategies["api"] = &APIStrategy{}
 	strategies["rss"] = NewRSSStrategy()
 
 	return &NewsHandler{
-		collection:    collection,
-		config:        config,
-		strategies:    strategies,
-		natsPublisher: natsPublisher,
+		collection:         collection,
+		config:             config,
+		strategies:         strategies,
+		natsPublisher:      natsPublisher,
+		streamingService:   streamingService,
+		analyticsProcessor: analyticsProcessor,
 	}
 }
 
 // Load configuration from environment variables
 func loadImprovedNewsConfig() *NewsConfig {
 	enableNATS, _ := strconv.ParseBool(getEnvOrDefault("ENABLE_NATS", "false"))
+	enableJetStream, _ := strconv.ParseBool(getEnvOrDefault("ENABLE_JETSTREAM", "true"))
 
 	var natsConfig *NATSConfig
 	if enableNATS {
 		natsConfig = &NATSConfig{
 			URL:     getEnvOrDefault("NATS_URL", "nats://localhost:4222"),
 			Subject: getEnvOrDefault("NATS_SUBJECT", "news.articles"),
+		}
+	}
+
+	var streamingConfig *StreamingConfig
+	if enableJetStream {
+		streamingConfig = &StreamingConfig{
+			URL:        getEnvOrDefault("NATS_URL", "nats://localhost:4222"),
+			StreamName: "NEWS_STREAM",
+			Subjects:   []string{"news.*", "analytics.*", "events.*"},
+			MaxAge:     24 * time.Hour,
+			MaxBytes:   100 * 1024 * 1024, // 100MB
+			MaxMsgs:    10000,
+			Replicas:   1,
 		}
 	}
 
@@ -100,14 +135,16 @@ func loadImprovedNewsConfig() *NewsConfig {
 		EnableNATS:       enableNATS,
 		NATSConfig:       natsConfig,
 		RegionStrategies: regionStrategies,
+		EnableJetStream:  enableJetStream,
+		StreamingConfig:  streamingConfig,
 	}
 
 	if config.APIKey == "" {
 		log.Println("Warning: Missing NEWS_API_KEY environment variable - API strategy will not work")
 	}
 
-	log.Printf("Hybrid News Config: BaseURL=%s, Regions=%v, MaxPages=%d, MaxArticles=%d, NATS=%t",
-		config.BaseURL, config.Regions, config.MaxPages, config.MaxArticles, config.EnableNATS)
+	log.Printf("Hybrid News Config: BaseURL=%s, Regions=%v, MaxPages=%d, MaxArticles=%d, NATS=%t, JetStream=%t",
+		config.BaseURL, config.Regions, config.MaxPages, config.MaxArticles, config.EnableNATS, config.EnableJetStream)
 
 	return config
 }
@@ -188,12 +225,27 @@ func (nh *NewsHandler) FetchNews(c *gin.Context) {
 		}
 	}
 
+	// Publish to JetStream if enabled
+	if nh.streamingService != nil {
+		for _, article := range articles {
+			if err := nh.streamingService.PublishArticle(article, "article_published"); err != nil {
+				log.Printf("Failed to publish article to JetStream: %v", err)
+			}
+		}
+	}
+
+	// Record metrics
+	if nh.analyticsProcessor != nil {
+		nh.analyticsProcessor.RecordRequest(fmt.Sprintf("fetch_%s", region), time.Since(time.Now()), true)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"region":         region,
-		"strategy":       strategy,
-		"fetched":        len(articles),
-		"stored":         stored,
-		"nats_published": nh.natsPublisher != nil,
+		"region":              region,
+		"strategy":            strategy,
+		"fetched":             len(articles),
+		"stored":              stored,
+		"nats_published":      nh.natsPublisher != nil,
+		"jetstream_published": nh.streamingService != nil,
 	})
 }
 
@@ -247,6 +299,15 @@ func (nh *NewsHandler) TriggerNewsFetch(region, priority string) error {
 	if nh.natsPublisher != nil && len(articles) > 0 {
 		if err := nh.natsPublisher.PublishBatch(articles); err != nil {
 			log.Printf("Failed to publish to NATS: %v", err)
+		}
+	}
+
+	// Publish to JetStream if enabled
+	if nh.streamingService != nil && len(articles) > 0 {
+		for _, article := range articles {
+			if err := nh.streamingService.PublishArticle(article, "article_published"); err != nil {
+				log.Printf("Failed to publish article to JetStream: %v", err)
+			}
 		}
 	}
 
@@ -319,6 +380,15 @@ func (nh *NewsHandler) fetchAndStoreAllRegions() {
 			}
 		}
 
+		// Publish to JetStream if enabled
+		if nh.streamingService != nil && len(articles) > 0 {
+			for _, article := range articles {
+				if err := nh.streamingService.PublishArticle(article, "article_published"); err != nil {
+					log.Printf("Failed to publish article to JetStream for region %s: %v", region, err)
+				}
+			}
+		}
+
 		// Rate limiting between regions
 		time.Sleep(nh.config.RateLimit)
 	}
@@ -341,4 +411,17 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+// Getter methods for accessing services
+func (nh *NewsHandler) GetStreamingService() *NATSStreamingService {
+	return nh.streamingService
+}
+
+func (nh *NewsHandler) GetAnalyticsProcessor() *AnalyticsProcessor {
+	return nh.analyticsProcessor
+}
+
+func (nh *NewsHandler) GetConfig() *NewsConfig {
+	return nh.config
 }

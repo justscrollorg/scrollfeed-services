@@ -51,6 +51,8 @@ spec:
         # NATS Configuration
         - name: ENABLE_NATS
           value: "true"
+        - name: ENABLE_JETSTREAM
+          value: "true"
         - name: NATS_URL
           value: "nats://nats.nats-system.svc.cluster.local:4222"
         - name: NATS_SUBJECT

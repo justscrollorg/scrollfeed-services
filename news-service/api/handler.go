@@ -63,12 +63,25 @@ func enhancedNewsHandler(c *gin.Context, db *mongo.Database) {
 	// Add timestamp-based consistency
 	// Only show articles that were fetched before request started
 	maxFetchTime := start.Add(-1 * time.Second) // 1 second buffer
-	filter["fetchedAt"] = bson.M{"$lte": maxFetchTime}
+	// Handle both camelCase and lowercase field names for compatibility
+	filter["$or"] = []bson.M{
+		{"fetchedAt": bson.M{"$lte": maxFetchTime}},
+		{"fetchedat": bson.M{"$lte": maxFetchTime}},
+	}
 
 	// Optimized aggregation pipeline for better performance
 	pipeline := []bson.M{
 		{"$match": filter},
-		{"$sort": bson.M{"publishedAt": -1, "_id": 1}}, // Secondary sort for consistency
+		// Handle both camelCase and lowercase for sorting
+		{"$addFields": bson.M{
+			"sortDate": bson.M{
+				"$ifNull": []interface{}{
+					"$publishedAt",
+					"$publishedat",
+				},
+			},
+		}},
+		{"$sort": bson.M{"sortDate": -1, "_id": 1}}, // Secondary sort for consistency
 		{"$skip": skip},
 		{"$limit": limit},
 		{
@@ -78,9 +91,19 @@ func enhancedNewsHandler(c *gin.Context, db *mongo.Database) {
 				"url":         1,
 				"image":       1,
 				"source":      1,
-				"publishedAt": 1,
-				"topic":       1,
-				"fetchedAt":   1,
+				"publishedAt": bson.M{
+					"$ifNull": []interface{}{
+						"$publishedAt",
+						"$publishedat",
+					},
+				},
+				"topic": 1,
+				"fetchedAt": bson.M{
+					"$ifNull": []interface{}{
+						"$fetchedAt",
+						"$fetchedat",
+					},
+				},
 			},
 		},
 	}

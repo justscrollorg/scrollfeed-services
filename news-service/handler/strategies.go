@@ -144,7 +144,7 @@ func (r *RSSStrategy) fetchFromRSSSource(sourceURL, region string) ([]model.Arti
 			Description: strings.TrimSpace(stripHTML(item.Description)),
 			URL:         strings.TrimSpace(item.Link),
 			Source: struct {
-				Name string `json:"name"`
+				Name string `json:"name" bson:"name"`
 			}{
 				Name: extractDomainName(sourceURL),
 			},
