@@ -30,4 +30,4 @@ jobs:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
           push: true
-          tags: anurag2911/${{ matrix.service }}:latest
+          tags: justscroll/${{ matrix.service }}:latest

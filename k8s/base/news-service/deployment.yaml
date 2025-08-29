@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: news-service
-        image: anurag2911/news-service:latest
+        image: justscroll/news-service:latest
         imagePullPolicy: Always
         env:
         - name: MONGO_URI
