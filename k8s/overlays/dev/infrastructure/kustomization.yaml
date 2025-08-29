@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - ../../../base/infrastructure
+- dev-ingress.yaml
 
 commonLabels:
   environment: dev

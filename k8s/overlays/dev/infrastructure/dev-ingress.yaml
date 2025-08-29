@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: justscrolls-dev-ingress
+  namespace: scrollfeed-dev
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - dev.justscrolls.com
+      secretName: justscrolls-dev-tls
+  rules:
+    # Development environment
+    - host: dev.justscrolls.com
+      http:
+        paths:
+          # API routes
+          - path: /news-api
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-news-service
+                port:
+                  number: 80
+          - path: /analytics-api
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 80
+          - path: /memes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: memes-service
+                port:
+                  number: 80
+          - path: /videos-api
+            pathType: Prefix
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 80
+          - path: /articles-api
+            pathType: Prefix
+            backend:
+              service:
+                name: articles-service
+                port:
+                  number: 80
+          - path: /jokes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: jokes-service
+                port:
+                  number: 80
+          # Frontend (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-scrollfeed-ui
+                port:
+                  number: 80

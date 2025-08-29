@@ -6,3 +6,9 @@ metadata:
 
 resources:
 - namespaces.yaml
+- cluster-issuer.yaml
+- ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: infrastructure
+  app.kubernetes.io/component: networking

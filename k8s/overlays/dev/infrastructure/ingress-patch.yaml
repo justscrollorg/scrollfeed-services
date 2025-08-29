@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: justscrolls-main-ingress
+spec:
+  rules:
+    # Dev API subdomain
+    - host: dev-api.justscrolls.com
+      http:
+        paths:
+          - path: /news
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-news-service
+                port:
+                  number: 80
+          - path: /analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 80
