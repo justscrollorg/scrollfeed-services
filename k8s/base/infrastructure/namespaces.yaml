@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scrollfeed-dev
+  labels:
+    name: scrollfeed-dev
+    environment: dev
+    part-of: scrollfeed
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scrollfeed-prod
+  labels:
+    name: scrollfeed-prod
+    environment: prod
+    part-of: scrollfeed
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scrollfeed-staging
+  labels:
+    name: scrollfeed-staging
+    environment: staging
+    part-of: scrollfeed

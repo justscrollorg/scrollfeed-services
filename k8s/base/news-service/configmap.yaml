@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: news-service-config
+  labels:
+    app: news-service
+    component: microservice
+    part-of: scrollfeed
+data:
+  # NewsAPI.org Configuration
+  NEWS_API_BASE_URL: "https://newsapi.org/v2/top-headlines"
+  NEWS_REGIONS: "us,in,de,gb,ca,au"
+  NEWS_MAX_PAGES: "2"
+  NEWS_MAX_ARTICLES: "50"
+  NEWS_RATE_LIMIT_SECONDS: "2"
+  NEWS_FETCH_INTERVAL_HOURS: "2"
+  # NATS Configuration
+  ENABLE_NATS: "true"
+  ENABLE_JETSTREAM: "true"
+  NATS_URL: "nats://nats.nats-system.svc.cluster.local:4222"
+  NATS_SUBJECT: "news.articles"
