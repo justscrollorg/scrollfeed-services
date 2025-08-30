@@ -5,6 +5,7 @@ metadata:
   annotations:
     # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
   tls:
@@ -58,6 +59,34 @@ spec:
                 name: memes-service
                 port:
                   number: 80
+          - path: /videos
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /newsarticles
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /jokes
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /memes
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -108,6 +137,34 @@ spec:
             backend:
               service:
                 name: memes-service
+                port:
+                  number: 80
+          - path: /videos
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /newsarticles
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /jokes
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+          - path: /memes
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
                 port:
                   number: 80
           - path: /
