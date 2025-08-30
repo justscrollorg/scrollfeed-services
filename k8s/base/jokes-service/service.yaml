@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jokes-service
+  labels:
+    app: jokes-service
+spec:
+  selector:
+    app: jokes-service
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

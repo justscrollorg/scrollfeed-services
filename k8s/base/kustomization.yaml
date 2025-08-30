@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - news-service
+  - analytics-service
+  - memes-service
+  - video-service
+  - news-fetcher-service
