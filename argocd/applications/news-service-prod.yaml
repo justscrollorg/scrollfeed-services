@@ -13,9 +13,6 @@ spec:
     server: https://kubernetes.default.svc
     namespace: scrollfeed-prod
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     syncOptions:
     - CreateNamespace=true
     - RespectIgnoreDifferences=true
