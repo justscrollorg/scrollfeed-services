@@ -29,7 +29,7 @@ spec:
         - name: PORT
           value: "8080"
         - name: NATS_URL
-          value: "nats://nats.default.svc.cluster.local:4222"
+          value: "nats://nats.nats-system.svc.cluster.local:4222"
         - name: NEWS_API_KEY
           valueFrom:
             secretKeyRef:
