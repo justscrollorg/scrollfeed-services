@@ -25,11 +25,6 @@ spec:
             secretKeyRef:
               name: mongo-secret
               key: MONGO_URI
-        - name: NATS_URL
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: NATS_URL
         - name: NEWS_API_KEY
           valueFrom:
             secretKeyRef:
