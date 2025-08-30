@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/justscrollorg/scrollfeed-ui
     targetRevision: HEAD
-    path: _infra/deployment.yaml
+    path: _infra
   destination:
     server: https://kubernetes.default.svc
     namespace: default
