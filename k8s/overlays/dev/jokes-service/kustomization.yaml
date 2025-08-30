@@ -4,9 +4,7 @@ kind: Kustomization
 namespace: scrollfeed-dev
 
 resources:
-- ../../../base/jokes-service
-
-namePrefix: dev-
+- deployment.yaml
 
 commonLabels:
   environment: dev

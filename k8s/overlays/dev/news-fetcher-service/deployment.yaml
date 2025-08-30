@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-news-fetcher-service
+  namespace: scrollfeed-dev
+  labels:
+    app: dev-news-fetcher-service
+    environment: dev
+    team: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dev-news-fetcher-service
+  template:
+    metadata:
+      labels:
+        app: dev-news-fetcher-service
+        environment: dev
+        team: platform
+    spec:
+      containers:
+      - name: news-fetcher-service
+        image: justscroll/news-fetcher-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: MONGO_URI
+        - name: NEWS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: news-api-secret
+              key: NEWS_API_KEY
+        - name: PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-news-fetcher-service
+  namespace: scrollfeed-dev
+  labels:
+    app: dev-news-fetcher-service
+    environment: dev
+    team: platform
+spec:
+  selector:
+    app: dev-news-fetcher-service
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
