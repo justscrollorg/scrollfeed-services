@@ -41,9 +41,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: jokessvc
+                name: jokes-service
                 port:
-                  number: 80
+                  number: 8080
           - path: /analytics-api
             pathType: Prefix
             backend:
@@ -93,9 +93,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: jokessvc
+                name: jokes-service
                 port:
-                  number: 80
+                  number: 8080
           - path: /analytics-api
             pathType: Prefix
             backend:
