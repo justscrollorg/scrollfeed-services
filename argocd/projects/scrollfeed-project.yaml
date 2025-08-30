@@ -12,7 +12,6 @@ spec:
   # Allow manifests to deploy from any Git repos
   sourceRepos:
   - 'https://github.com/justscrollorg/scrollfeed-services'
-  - 'https://github.com/anurag-2911/scrollfeed-services'
   - 'https://github.com/justscrollorg/scrollfeed-backend'
   - 'https://github.com/justscrollorg/scrollfeed-ui'
   
