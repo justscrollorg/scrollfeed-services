@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: video-service-dev
+  namespace: argocd
+spec:
+  project: scrollfeed
+  source:
+    repoURL: https://github.com/justscrollorg/scrollfeed-services
+    targetRevision: HEAD
+    path: k8s/overlays/dev/video-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrollfeed-dev
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+  revisionHistoryLimit: 10

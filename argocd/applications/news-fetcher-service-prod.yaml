@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: news-fetcher-service-prod
+  namespace: argocd
+spec:
+  project: scrollfeed
+  source:
+    repoURL: https://github.com/justscrollorg/scrollfeed-services
+    targetRevision: HEAD
+    path: k8s/base/news-fetcher-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+  revisionHistoryLimit: 10
