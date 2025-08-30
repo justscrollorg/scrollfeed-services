@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scrollfeed-backend-dev
+  namespace: argocd
+spec:
+  project: scrollfeed
+  source:
+    repoURL: https://github.com/justscrollorg/scrollfeed-backend
+    targetRevision: HEAD
+    path: _infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrollfeed-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+  revisionHistoryLimit: 10

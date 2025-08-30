@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scrollfeed-ui-prod
+  namespace: argocd
+spec:
+  project: scrollfeed
+  source:
+    repoURL: https://github.com/justscrollorg/scrollfeed-ui
+    targetRevision: HEAD
+    path: _infra/deployment.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+  revisionHistoryLimit: 10

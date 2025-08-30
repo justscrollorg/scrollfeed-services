@@ -13,9 +13,13 @@ spec:
   sourceRepos:
   - 'https://github.com/justscrollorg/scrollfeed-services'
   - 'https://github.com/anurag-2911/scrollfeed-services'
+  - 'https://github.com/justscrollorg/scrollfeed-backend'
+  - 'https://github.com/justscrollorg/scrollfeed-ui'
   
   # Only permit applications to deploy to these namespaces
   destinations:
+  - namespace: default
+    server: https://kubernetes.default.svc
   - namespace: scrollfeed-dev
     server: https://kubernetes.default.svc
   - namespace: scrollfeed-prod
