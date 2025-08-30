@@ -34,7 +34,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: news-api-secret
-              key: API_KEY
+              key: NEWS_API_KEY
         resources:
           requests:
             memory: "64Mi"

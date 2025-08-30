@@ -30,6 +30,11 @@ spec:
           value: "8080"
         - name: NATS_URL
           value: "nats://nats.default.svc.cluster.local:4222"
+        - name: YOUTUBE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: youtube-api-secret
+              key: YOUTUBE_API_KEY
         resources:
           requests:
             memory: "64Mi"
