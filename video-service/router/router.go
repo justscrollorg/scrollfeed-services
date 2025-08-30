@@ -35,6 +35,9 @@ func Setup(db *mongo.Database) *gin.Engine {
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "video-service"})
 	})
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "healthy", "service": "video-service"})
+	})
 
 	return r
 }
