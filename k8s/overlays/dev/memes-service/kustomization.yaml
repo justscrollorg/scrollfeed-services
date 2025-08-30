@@ -4,9 +4,8 @@ kind: Kustomization
 namespace: scrollfeed-dev
 
 resources:
-- ../../../base/memes-service
-
-namePrefix: dev-
+- deployment.yaml
+- service.yaml
 
 commonLabels:
   environment: dev

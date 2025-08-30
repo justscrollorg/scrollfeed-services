@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-video-service
+  namespace: scrollfeed-dev
+  labels:
+    app: dev-video-service
+    environment: dev
+    team: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dev-video-service
+  template:
+    metadata:
+      labels:
+        app: dev-video-service
+        environment: dev
+        team: platform
+    spec:
+      containers:
+      - name: video-service
+        image: justscroll/video-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: MONGO_URI
+        - name: PORT
+          value: "8080"
+        - name: NATS_URL
+          value: "nats://nats.nats-system.svc.cluster.local:4222"
+        - name: YOUTUBE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: youtube-api-secret
+              key: YOUTUBE_API_KEY
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
