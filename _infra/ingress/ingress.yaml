@@ -50,7 +50,7 @@ spec:
               service:
                 name: analytics-service
                 port:
-                  number: 80
+                  number: 8080
           - path: /memes-api
             pathType: Prefix
             backend:
@@ -102,7 +102,7 @@ spec:
               service:
                 name: analytics-service
                 port:
-                  number: 80
+                  number: 8080
           - path: /memes-api
             pathType: Prefix
             backend:
