@@ -37,28 +37,28 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: memes-service
+                name: dev-memes-service
                 port:
                   number: 80
           - path: /videos-api
             pathType: Prefix
             backend:
               service:
-                name: video-service
+                name: dev-video-service
                 port:
                   number: 80
           - path: /articles-api
             pathType: Prefix
             backend:
               service:
-                name: articles-service
+                name: dev-articles-service
                 port:
                   number: 80
           - path: /jokes-api
             pathType: Prefix
             backend:
               service:
-                name: jokes-service
+                name: dev-jokes-service
                 port:
                   number: 80
           # Frontend (must be last)
