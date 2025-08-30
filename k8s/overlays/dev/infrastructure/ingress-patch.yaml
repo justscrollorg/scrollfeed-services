@@ -3,22 +3,131 @@ kind: Ingress
 metadata:
   name: justscrolls-main-ingress
 spec:
+  tls:
+    - hosts:
+        - justscrolls.com
+        - www.justscrolls.com
+        - dev.justscrolls.com
+      secretName: justscrolls-prod-tls
   rules:
-    # Dev API subdomain
-    - host: dev-api.justscrolls.com
+    # Main production frontend
+    - host: justscrolls.com
       http:
         paths:
-          - path: /news
+          # API routes
+          - path: /news-api
+            pathType: Prefix
+            backend:
+              service:
+                name: news-service
+                port:
+                  number: 80
+          - path: /analytics-api
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 80
+          - path: /memes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: memes-service
+                port:
+                  number: 80
+          - path: /videos-api
+            pathType: Prefix
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 80
+          - path: /articles-api
+            pathType: Prefix
+            backend:
+              service:
+                name: articles-service
+                port:
+                  number: 80
+          - path: /jokes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: jokes-service
+                port:
+                  number: 80
+          # Frontend (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+    # WWW redirect to main
+    - host: www.justscrolls.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: scrollfeed-ui
+                port:
+                  number: 80
+    # Development environment
+    - host: dev.justscrolls.com
+      http:
+        paths:
+          # Dev API routes
+          - path: /news-api
             pathType: Prefix
             backend:
               service:
                 name: dev-news-service
                 port:
                   number: 80
-          - path: /analytics
+          - path: /analytics-api
             pathType: Prefix
             backend:
               service:
                 name: analytics-service
+                port:
+                  number: 80
+          - path: /memes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-memes-service
+                port:
+                  number: 80
+          - path: /videos-api
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-video-service
+                port:
+                  number: 80
+          - path: /articles-api
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-articles-service
+                port:
+                  number: 80
+          - path: /jokes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-jokes-service
+                port:
+                  number: 80
+          # Dev Frontend (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-scrollfeed-ui
                 port:
                   number: 80
