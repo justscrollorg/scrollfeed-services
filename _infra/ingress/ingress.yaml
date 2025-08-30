@@ -34,7 +34,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: articlessvc
+                name: articles-service
                 port:
                   number: 80
           - path: /jokes-api
@@ -51,13 +51,13 @@ spec:
                 name: analytics-service
                 port:
                   number: 80
-            - path: /memes-api
-              pathType: Prefix
-              backend:
-                service:
-                  name: memes-service
-                  port:
-                    number: 80
+          - path: /memes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: memes-service
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -86,7 +86,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: articlessvc
+                name: articles-service
                 port:
                   number: 80
           - path: /jokes-api
@@ -103,13 +103,13 @@ spec:
                 name: analytics-service
                 port:
                   number: 80
-            - path: /memes-api
-              pathType: Prefix
-              backend:
-                service:
-                  name: memes-service
-                  port:
-                    number: 80
+          - path: /memes-api
+            pathType: Prefix
+            backend:
+              service:
+                name: memes-service
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
