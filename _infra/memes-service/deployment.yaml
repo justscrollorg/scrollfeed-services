@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: memes-service
-        image: anurag2911/memes-service:latest
+        image: justscroll/memes-service:latest
         imagePullPolicy: Always
         env:
         - name: MONGO_URI

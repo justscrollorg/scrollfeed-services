@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: scrollfeed-ui
-          image: anurag2911/scrollfeed-ui:latest
+          image: justscroll/scrollfeed-ui:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

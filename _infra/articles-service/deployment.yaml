@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: articles-service
-          image: anurag2911/articles-service:latest
+          image: justscroll/articles-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

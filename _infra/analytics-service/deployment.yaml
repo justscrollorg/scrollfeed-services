@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: analytics-service
-        image: anurag2911/analytics-service:latest
+        image: justscroll/analytics-service:latest
         imagePullPolicy: Always
         env:
         - name: MONGO_URI

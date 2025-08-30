@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: news-fetcher-service
-        image: anurag2911/news-fetcher-service:latest
+        image: justscroll/news-fetcher-service:latest
         imagePullPolicy: Always
         env:
         - name: MONGO_URI

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: video-service
-          image: anurag2911/video-service:latest
+          image: justscroll/video-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
