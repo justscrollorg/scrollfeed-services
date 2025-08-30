@@ -4,21 +4,14 @@ kind: Kustomization
 namespace: scrollfeed-dev
 
 resources:
-- ../../../base/analytics-service
+- deployment.yaml
+- service.yaml
 
 secretGenerator:
 - name: analytics-service-secrets
   literals:
-  - MONGO_URI=mongodb://mongo-dev.scrollfeed-dev.svc.cluster.local:27017/analyticsdb-dev
+  - MONGO_URI=mongodb://novell:novell123@mongodb.mongo.svc.cluster.local:27017/analyticsdb-dev?authSource=admin
 
 commonLabels:
   environment: dev
   team: platform
-
-images:
-- name: anurag2911/analytics-service
-  newTag: dev-latest
-
-replicas:
-- name: analytics-service
-  count: 1
