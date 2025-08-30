@@ -32,6 +32,9 @@ func main() {
 	go backgroundRefresh(ctx)
 
 	r := gin.Default()
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "healthy", "timestamp": time.Now()})
+	})
 	r.GET("/memes/trending", getTrendingMemes)
 	r.Run(":8080")
 }
