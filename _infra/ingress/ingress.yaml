@@ -16,13 +16,6 @@ spec:
     - host: justscrolls.com
       http:
         paths:
-          - path: /regions
-            pathType: Exact
-            backend:
-              service:
-                name: video-service
-                port:
-                  number: 80
           - path: /api
             pathType: Prefix
             backend:
@@ -75,13 +68,6 @@ spec:
     - host: www.justscrolls.com
       http:
         paths:
-          - path: /regions
-            pathType: Exact
-            backend:
-              service:
-                name: video-service
-                port:
-                  number: 80
           - path: /api
             pathType: Prefix
             backend:
