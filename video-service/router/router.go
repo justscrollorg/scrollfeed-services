@@ -23,6 +23,7 @@ func Setup(db *mongo.Database) *gin.Engine {
 	// Initialize handlers with database
 	handler.InitDB(db)
 
+	r.GET("/regions", handler.GetRegions)
 	r.GET("/api/regions", handler.GetRegions)
 	r.GET("/api/categories", handler.GetCategories)
 	r.GET("/api/videos", handler.GetVideos)
