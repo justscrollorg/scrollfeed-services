@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"analytics-service/metrics"
 	"analytics-service/model"
 	"context"
 	"net"
@@ -32,6 +33,9 @@ func (h *AnalyticsHandler) TrackEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Record metrics for analytics events
+	metrics.AnalyticsEventsTracked.WithLabelValues(req.EventType, req.Platform).Inc()
 
 	// Get client IP address
 	clientIP := h.getClientIP(c)
@@ -150,6 +154,9 @@ func (h *AnalyticsHandler) recordExit(c *gin.Context, req model.AnalyticsRequest
 
 // GetStats returns analytics statistics
 func (h *AnalyticsHandler) GetStats(c *gin.Context) {
+	// Record metrics for stats requests
+	metrics.AnalyticsStatsRequests.Inc()
+
 	days := c.DefaultQuery("days", "7")
 	daysInt, _ := strconv.Atoi(days)
 

@@ -53,11 +53,15 @@ kind: Service
 metadata:
   name: analytics-service
   namespace: default
+  labels:
+    monitoring: "true"
+    framework: "go"
 spec:
   selector:
     app: analytics-service
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 8080
   type: ClusterIP

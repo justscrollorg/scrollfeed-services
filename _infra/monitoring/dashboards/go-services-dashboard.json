@@ -1,0 +1,199 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ScrollFeed Go Services",
+    "tags": ["scrollfeed", "go", "microservices"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=~\"analytics-service|news-service|video-service|memes-service\"}[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "HTTP Request Duration (95th percentile)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=~\"analytics-service|news-service|video-service|memes-service\"}[5m])) by (service, le))",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "HTTP Error Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=~\"analytics-service|news-service|video-service|memes-service\", status_code=~\"4..|5..\"}[5m])) by (service) / sum(rate(http_requests_total{service=~\"analytics-service|news-service|video-service|memes-service\"}[5m])) by (service) * 100",
+            "legendFormat": "{{service}} error rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Analytics Events Tracked",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(analytics_events_tracked_total[5m])) by (event_type)",
+            "legendFormat": "{{event_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "News Articles Served",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(news_articles_served_total[5m])) by (category)",
+            "legendFormat": "{{category}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "MongoDB Operations",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(mongo_operations_total[5m])) by (operation, service)",
+            "legendFormat": "{{service}} - {{operation}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "NATS Messages",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(nats_messages_published_total[5m])) by (subject)",
+            "legendFormat": "Published - {{subject}}"
+          },
+          {
+            "expr": "sum(rate(nats_messages_received_total[5m])) by (subject)",
+            "legendFormat": "Received - {{subject}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "msg/s",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "CPU Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{pod=~\"analytics-service.*|news-service.*|video-service.*|memes-service.*\"}[5m]) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 9,
+        "title": "Memory Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{pod=~\"analytics-service.*|news-service.*|video-service.*|memes-service.*\"} / 1024 / 1024",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MiB",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

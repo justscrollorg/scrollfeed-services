@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: scrollfeed-services
+  namespace: monitoring
+  labels:
+    app: scrollfeed-services
+spec:
+  selector:
+    matchLabels:
+      monitoring: "true"
+  namespaceSelector:
+    matchNames:
+    - default
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dotnet-services
+  namespace: monitoring
+  labels:
+    app: dotnet-services
+spec:
+  selector:
+    matchLabels:
+      framework: "dotnet"
+  namespaceSelector:
+    matchNames:
+    - default
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
