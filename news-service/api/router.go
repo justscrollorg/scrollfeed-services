@@ -3,8 +3,12 @@ package api
 import (
 	"log"
 	"news-service/handler"
+	"news-service/metrics"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -14,6 +18,9 @@ var streamingAPI *StreamingAPI
 
 func StartServer(db *mongo.Database, natsURL string) {
 	router := gin.Default()
+
+	// Add metrics middleware
+	router.Use(metricsMiddleware())
 
 	dbmngo = db
 
@@ -27,6 +34,7 @@ func StartServer(db *mongo.Database, natsURL string) {
 	router.GET("/", healthCheck)
 	router.GET("/health", healthCheck)
 	router.GET("/ready", healthCheck)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// API routes
 	router.GET("/news-api/news", callnewsHandler)
@@ -101,4 +109,29 @@ func getRegions(c *gin.Context) {
 
 func getStats(c *gin.Context) {
 	statsHandler(c, dbmngo)
+}
+
+// Metrics middleware
+func metricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		
+		c.Next()
+		
+		duration := time.Since(start)
+		status := strconv.Itoa(c.Writer.Status())
+		
+		metrics.HttpRequestsTotal.WithLabelValues(
+			c.Request.Method,
+			c.Request.URL.Path,
+			status,
+			"news-service",
+		).Inc()
+		
+		metrics.HttpRequestDuration.WithLabelValues(
+			c.Request.Method,
+			c.Request.URL.Path,
+			"news-service",
+		).Observe(duration.Seconds())
+	}
 }
