@@ -42,6 +42,11 @@ func NewRSSStrategy() *RSSStrategy {
 				"https://feeds.feedburner.com/ndtvnews-top-stories",
 				"https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
 			},
+			"us": {
+				"https://feeds.reuters.com/reuters/topNews",
+				"https://rss.cnn.com/rss/edition.rss",
+				"https://feeds.npr.org/1001/rss.xml",
+			},
 		},
 	}
 }

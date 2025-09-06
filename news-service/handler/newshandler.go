@@ -113,11 +113,11 @@ func loadImprovedNewsConfig() *NewsConfig {
 		}
 	}
 
-	// Region-specific strategies: "in" uses RSS, others use API
+	// Region-specific strategies: "in" and "us" use RSS, others use API
 	regionStrategies := make(map[string]string)
 	regions := strings.Split(getEnvOrDefault("NEWS_REGIONS", "us,in,de"), ",")
 	for _, region := range regions {
-		if region == "in" {
+		if region == "in" || region == "us" {
 			regionStrategies[region] = "rss"
 		} else {
 			regionStrategies[region] = "api"
