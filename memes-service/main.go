@@ -35,7 +35,16 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy", "timestamp": time.Now()})
 	})
+	
+	// API routes with /memes-api prefix to match ingress routing
+	api := r.Group("/memes-api")
+	{
+		api.GET("/memes/trending", getTrendingMemes)
+	}
+	
+	// Also keep the original route for direct access and health checks
 	r.GET("/memes/trending", getTrendingMemes)
+	
 	r.Run(":8080")
 }
 
