@@ -413,6 +413,89 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 	return defaultValue
 }
 
+// CleanupRegionNews removes all articles for a specific region
+func (nh *NewsHandler) CleanupRegionNews(region string) (int64, error) {
+	log.Printf("Cleaning up articles for region: %s", region)
+	
+	filter := bson.M{"topic": region}
+	result, err := nh.collection.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete articles for region %s: %v", region, err)
+	}
+	
+	log.Printf("Deleted %d articles for region: %s", result.DeletedCount, region)
+	return result.DeletedCount, nil
+}
+
+// CleanupAndRefreshRegion removes old articles and fetches fresh ones
+func (nh *NewsHandler) CleanupAndRefreshRegion(region string) (map[string]interface{}, error) {
+	log.Printf("Starting cleanup and refresh for region: %s", region)
+	
+	// Step 1: Cleanup old articles
+	deletedCount, err := nh.CleanupRegionNews(region)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Step 2: Determine strategy (force RSS for India)
+	strategy := nh.config.RegionStrategies[region]
+	if strategy == "" {
+		if region == "in" {
+			strategy = "rss"
+		} else {
+			strategy = "api"
+		}
+	}
+	
+	log.Printf("Using strategy '%s' for region: %s", strategy, region)
+	
+	// Step 3: Fetch fresh articles
+	newsStrategy, exists := nh.strategies[strategy]
+	if !exists {
+		return nil, fmt.Errorf("strategy %s not available", strategy)
+	}
+	
+	articles, err := newsStrategy.FetchNews(region, nh.config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch fresh articles: %v", err)
+	}
+	
+	// Step 4: Store fresh articles
+	stored := nh.storeArticles(articles)
+	
+	// Step 5: Publish to NATS if enabled
+	if nh.natsPublisher != nil && len(articles) > 0 {
+		if err := nh.natsPublisher.PublishBatch(articles); err != nil {
+			log.Printf("Failed to publish to NATS: %v", err)
+		}
+	}
+	
+	// Step 6: Publish to JetStream if enabled
+	if nh.streamingService != nil && len(articles) > 0 {
+		for _, article := range articles {
+			if err := nh.streamingService.PublishArticle(article, "article_published"); err != nil {
+				log.Printf("Failed to publish article to JetStream: %v", err)
+			}
+		}
+	}
+	
+	result := map[string]interface{}{
+		"region":              region,
+		"strategy":            strategy,
+		"articles_deleted":    deletedCount,
+		"articles_fetched":    len(articles),
+		"articles_stored":     stored,
+		"nats_published":      nh.natsPublisher != nil,
+		"jetstream_published": nh.streamingService != nil,
+		"cleanup_timestamp":   time.Now(),
+	}
+	
+	log.Printf("Cleanup and refresh completed for region=%s: deleted=%d, fetched=%d, stored=%d", 
+		region, deletedCount, len(articles), stored)
+	
+	return result, nil
+}
+
 // Getter methods for accessing services
 func (nh *NewsHandler) GetStreamingService() *NATSStreamingService {
 	return nh.streamingService

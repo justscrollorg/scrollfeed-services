@@ -42,6 +42,8 @@ func StartServer(db *mongo.Database, natsURL string) {
 	router.GET("/news-api/stats", getStats)
 	router.POST("/news-api/fetch/:region", triggerRegionFetch)
 	router.POST("/news-api/fetch-all", triggerAllFetch)
+	router.DELETE("/news-api/cleanup/:region", cleanupRegionNews)
+	router.POST("/news-api/cleanup-refresh/:region", cleanupAndRefreshRegion)
 
 	// Streaming API routes
 	streamingRoutes := router.Group("/streaming-api")
@@ -99,6 +101,44 @@ func triggerAllFetch(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Fetch triggered for all regions", "priority": priority})
+}
+
+func cleanupRegionNews(c *gin.Context) {
+	region := c.Param("region")
+	
+	log.Printf("[INFO] Cleanup requested for region: %s", region)
+	
+	deletedCount, err := natsNewsHandler.CleanupRegionNews(region)
+	if err != nil {
+		log.Printf("Failed to cleanup region %s: %v", region, err)
+		c.JSON(500, gin.H{"error": "Failed to cleanup region", "details": err.Error()})
+		return
+	}
+	
+	c.JSON(200, gin.H{
+		"message": "Region cleanup completed",
+		"region": region,
+		"articles_deleted": deletedCount,
+		"timestamp": time.Now(),
+	})
+}
+
+func cleanupAndRefreshRegion(c *gin.Context) {
+	region := c.Param("region")
+	
+	log.Printf("[INFO] Cleanup and refresh requested for region: %s", region)
+	
+	result, err := natsNewsHandler.CleanupAndRefreshRegion(region)
+	if err != nil {
+		log.Printf("Failed to cleanup and refresh region %s: %v", region, err)
+		c.JSON(500, gin.H{"error": "Failed to cleanup and refresh region", "details": err.Error()})
+		return
+	}
+	
+	c.JSON(200, gin.H{
+		"message": "Region cleanup and refresh completed",
+		"result": result,
+	})
 }
 
 func getRegions(c *gin.Context) {
