@@ -141,9 +141,7 @@ func (r *RSSStrategy) fetchFromRSSSource(sourceURL, region string) ([]model.Arti
 
 		// Extract image from description or use fallback
 		imageURL := extractImageFromHTML(item.Description)
-		if imageURL == "" {
-			imageURL = getDefaultNewsImage(region)
-		}
+		imageURL = validateAndFixImageURL(imageURL, region)
 
 		article := model.Article{
 			Title:       strings.TrimSpace(item.Title),
@@ -254,6 +252,28 @@ func getDefaultNewsImage(region string) string {
 	return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=200&fit=crop&crop=entropy&auto=format&q=80"
 }
 
+func validateAndFixImageURL(imageURL, region string) string {
+	// If no image URL provided, use default
+	if imageURL == "" {
+		return getDefaultNewsImage(region)
+	}
+
+	// Check if it's a valid HTTP/HTTPS URL
+	if !strings.HasPrefix(imageURL, "http://") && !strings.HasPrefix(imageURL, "https://") {
+		return getDefaultNewsImage(region)
+	}
+
+	// Check for common invalid patterns
+	if strings.Contains(imageURL, "null") || 
+	   strings.Contains(imageURL, "undefined") || 
+	   strings.HasSuffix(imageURL, ".svg") ||
+	   len(imageURL) < 10 {
+		return getDefaultNewsImage(region)
+	}
+
+	return imageURL
+}
+
 func extractDomainName(url string) string {
 	parts := strings.Split(url, "/")
 	if len(parts) >= 3 {
@@ -305,6 +325,9 @@ func fetchRegionNewsAPI(region string, config *NewsConfig) ([]model.Article, err
 		}
 
 		for _, article := range result.Articles {
+			// Validate and fix image URL
+			article.Image = validateAndFixImageURL(article.Image, region)
+			
 			article.Topic = region
 			article.FetchedAt = time.Now()
 			allArticles = append(allArticles, article)
