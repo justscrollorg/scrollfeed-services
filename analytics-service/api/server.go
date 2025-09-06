@@ -42,11 +42,18 @@ func StartServer(db *mongo.Database) {
 		})
 	})
 
-	// Analytics endpoints
+	// Analytics endpoints - both with and without prefix for compatibility
 	api := r.Group("/api/v1")
 	{
 		api.POST("/analytics/track", analyticsHandler.TrackEvent)
 		api.GET("/analytics/stats", analyticsHandler.GetStats)
+	}
+
+	// Analytics endpoints with ingress prefix (/analytics-api maps to service root)
+	analyticsAPI := r.Group("/analytics-api/api/v1")
+	{
+		analyticsAPI.POST("/analytics/track", analyticsHandler.TrackEvent)
+		analyticsAPI.GET("/analytics/stats", analyticsHandler.GetStats)
 	}
 
 	log.Println("Analytics service starting on port 8080...")
