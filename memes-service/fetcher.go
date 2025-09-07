@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 )
@@ -26,7 +26,7 @@ func FetchImgflipMemes() ([]Meme, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var result ImgflipResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		log.Printf("Imgflip unmarshal error: %v", err)
@@ -62,17 +62,27 @@ func FetchRedditMemes() ([]Meme, error) {
 	log.Println("Fetching memes from Reddit...")
 	url := "https://www.reddit.com/r/memes/top.json?limit=20&t=day"
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", "scrollfeed-memes-bot/0.1")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; ScrollfeedBot/1.0)")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Reddit fetch error: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
+	
+	// Debug: Log response status and first 200 chars of body
+	log.Printf("Reddit response status: %d", resp.StatusCode)
+	if len(body) > 200 {
+		log.Printf("Reddit response body preview: %s...", string(body[:200]))
+	} else {
+		log.Printf("Reddit response body: %s", string(body))
+	}
+	
 	var listing RedditListing
 	if err := json.Unmarshal(body, &listing); err != nil {
 		log.Printf("Reddit unmarshal error: %v", err)
+		log.Printf("Response body was: %s", string(body))
 		return nil, err
 	}
 	memes := []Meme{}
