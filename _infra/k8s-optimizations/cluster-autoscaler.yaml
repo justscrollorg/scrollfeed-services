@@ -117,8 +117,7 @@ subjects:
     name: cluster-autoscaler
     namespace: kube-system
 ---
-# NOTE: For Linode LKE, you need to enable autoscaling in the node pool settings
-# via the Linode Cloud Manager or API. This deployment configures the in-cluster
+# This deployment configures the in-cluster
 # component that works with Linode's autoscaling API.
 apiVersion: apps/v1
 kind: Deployment
