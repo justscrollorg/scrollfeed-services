@@ -1,0 +1,93 @@
+# Alternative: Karpenter-style provisioner using native K8s constructs
+# This uses PriorityClasses and resource quotas to optimize scheduling
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-services
+value: 1000000
+globalDefault: false
+description: "High priority for critical user-facing services"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: medium-priority-services
+value: 500000
+globalDefault: false
+description: "Medium priority for standard services"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low-priority-batch
+value: 100000
+globalDefault: false
+description: "Low priority for batch and background jobs"
+---
+# Pod Disruption Budgets for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service-pdb
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: user-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: content-service-pdb
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: content-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service-pdb
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafka-pdb
+  namespace: kafka
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: kafka
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mongo-pdb
+  namespace: mongo
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mongo
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: postgres
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: postgres

@@ -1,0 +1,290 @@
+# Resource limits optimization for all services
+# This patches deployments to have reasonable resource requests and limits
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: analytics-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: articlessvc
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: articlessvc
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: content-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jokes-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: jokes-service
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lesson-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: lesson-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 400m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memes-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: memes-service
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news-fetcher-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: news-fetcher-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: news-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: notification-service
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrollfeed-ui
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: scrollfeed-ui
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shorturlsvc
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: shorturlsvc
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-processor
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: stream-processor
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subscription-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: subscription-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: user-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 400m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: utility-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: utility-service
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-service
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: video-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 400m
+            memory: 512Mi

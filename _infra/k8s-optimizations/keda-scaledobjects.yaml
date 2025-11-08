@@ -1,0 +1,114 @@
+# KEDA ScaledObjects for event-driven autoscaling
+# These scale based on Kafka lag and NATS queue depth
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: stream-processor-kafka-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: stream-processor
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: kafka-0.kafka.kafka.svc.cluster.local:9092,kafka-1.kafka.kafka.svc.cluster.local:9092,kafka-2.kafka.kafka.svc.cluster.local:9092
+      consumerGroup: stream-processor-group
+      topic: events
+      lagThreshold: "50"
+      offsetResetPolicy: latest
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: analytics-service-kafka-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: analytics-service
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: kafka-0.kafka.kafka.svc.cluster.local:9092,kafka-1.kafka.kafka.svc.cluster.local:9092,kafka-2.kafka.kafka.svc.cluster.local:9092
+      consumerGroup: analytics-group
+      topic: analytics-events
+      lagThreshold: "100"
+      offsetResetPolicy: latest
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: notification-service-nats-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: notification-service
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  pollingInterval: 30
+  cooldownPeriod: 180
+  triggers:
+  - type: nats-jetstream
+    metadata:
+      natsServerMonitoringEndpoint: "nats://nats.nats-system.svc.cluster.local:4222"
+      stream: notifications
+      consumer: notification-consumer
+      lagThreshold: "10"
+---
+# For MongoDB-based queue processing
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: news-fetcher-cron-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: news-fetcher-service
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  pollingInterval: 60
+  cooldownPeriod: 300
+  triggers:
+  - type: cron
+    metadata:
+      timezone: America/New_York
+      start: 0 6 * * *
+      end: 0 22 * * *
+      desiredReplicas: "3"
+  - type: cron
+    metadata:
+      timezone: America/New_York
+      start: 0 22 * * *
+      end: 0 6 * * *
+      desiredReplicas: "1"
+---
+# CPU-based scaling with KEDA for comparison
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: user-service-cpu-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: user-service
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+  - type: cpu
+    metricType: Utilization
+    metadata:
+      value: "70"
+  - type: memory
+    metricType: Utilization
+    metadata:
+      value: "80"
