@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: viral-service
+spec:
+  selector:
+    app: viral-service
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
