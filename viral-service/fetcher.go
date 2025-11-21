@@ -18,7 +18,7 @@ func FetchRedditViral() ([]ViralStory, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	for _, subreddit := range subreddits {
-		url := fmt.Sprintf("https://www.reddit.com/r/%s/hot.json?limit=25", subreddit)
+		url := fmt.Sprintf("https://old.reddit.com/r/%s/hot.json?limit=25", subreddit)
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
