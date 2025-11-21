@@ -25,7 +25,9 @@ func FetchRedditViral() ([]ViralStory, error) {
 			log.Printf("Error creating request for r/%s: %v", subreddit, err)
 			continue
 		}
-		req.Header.Set("User-Agent", "JustScrolls-Viral-Fetcher/1.0")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
 		resp, err := client.Do(req)
 		if err != nil {
